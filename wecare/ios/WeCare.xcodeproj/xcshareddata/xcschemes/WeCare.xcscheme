@@ -15,9 +15,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "13B07F861A680F5B00A75B9A"
-               BuildableName = "CareRounds.app"
-               BlueprintName = "CareRounds"
-               ReferencedContainer = "container:CareRounds.xcodeproj">
+               BuildableName = "WeCare.app"
+               BlueprintName = "WeCare"
+               ReferencedContainer = "container:WeCare.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
       </BuildActionEntries>
@@ -33,9 +33,9 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "00E356ED1AD99517003FC87E"
-               BuildableName = "CareRoundsTests.xctest"
-               BlueprintName = "CareRoundsTests"
-               ReferencedContainer = "container:CareRounds.xcodeproj">
+               BuildableName = "WeCareTests.xctest"
+               BlueprintName = "WeCareTests"
+               ReferencedContainer = "container:WeCare.xcodeproj">
             </BuildableReference>
          </TestableReference>
       </Testables>
@@ -55,9 +55,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "13B07F861A680F5B00A75B9A"
-            BuildableName = "CareRounds.app"
-            BlueprintName = "CareRounds"
-            ReferencedContainer = "container:CareRounds.xcodeproj">
+            BuildableName = "WeCare.app"
+            BlueprintName = "WeCare"
+            ReferencedContainer = "container:WeCare.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </LaunchAction>
@@ -72,9 +72,9 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "13B07F861A680F5B00A75B9A"
-            BuildableName = "CareRounds.app"
-            BlueprintName = "CareRounds"
-            ReferencedContainer = "container:CareRounds.xcodeproj">
+            BuildableName = "WeCare.app"
+            BlueprintName = "WeCare"
+            ReferencedContainer = "container:WeCare.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
    </ProfileAction>

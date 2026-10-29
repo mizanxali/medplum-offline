@@ -1,4 +1,4 @@
-package com.mizanxali.carerounds
+package com.mizanxali.wecare
 
 import android.app.Application
 import com.facebook.react.PackageList

@@ -9,10 +9,6 @@ phone holding it has internet.
 Built on [`@offline-protocol/mesh-sdk`](https://www.npmjs.com/package/@offline-protocol/mesh-sdk) 0.31,
 React Native 0.88. Patients are synthetic; no real person is behind any record.
 
-The project and its identifiers (the Xcode target, the bundle id, the mesh app
-id) keep the app's first name, CareRounds, so installed phones keep their
-enrollment and visits.
-
 ## What it shows
 
 - **Sealed relay.** A visit goes from the health worker to the clinic as an
@@ -128,11 +124,11 @@ JavaScript:
 
 ```sh
 # iPhone (pass your own team id)
-xcodebuild -workspace "$PWD/ios/CareRounds.xcworkspace" -scheme CareRounds \
+xcodebuild -workspace "$PWD/ios/WeCare.xcworkspace" -scheme WeCare \
   -configuration Release -destination 'id=<UDID>' -derivedDataPath /tmp/cr-dd \
   -allowProvisioningUpdates DEVELOPMENT_TEAM=<team id> build
 xcrun devicectl device install app --device <UDID> \
-  /tmp/cr-dd/Build/Products/Release-iphoneos/CareRounds.app
+  /tmp/cr-dd/Build/Products/Release-iphoneos/WeCare.app
 # Android (signed with the debug key, so reinstalls keep app data)
 (cd android && ./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a)
 adb install -r android/app/build/outputs/apk/release/app-release.apk
@@ -143,7 +139,7 @@ Bluetooth on; Android asks for Bluetooth and location access, and for the
 camera before scanning. iOS asks for Bluetooth and local network access.
 
 Every SDK event is logged with the `[wecare]` prefix, never with message
-content (`adb logcat ReactNativeJS:V '*:S'`; `idevicesyslog -p CareRounds`).
+content (`adb logcat ReactNativeJS:V '*:S'`; `idevicesyslog -p WeCare`).
 
 ## Checks
 

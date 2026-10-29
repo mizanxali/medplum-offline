@@ -30,7 +30,7 @@ class SceneDelegate: RCTDefaultReactNativeFactoryDelegate, UIWindowSceneDelegate
     #endif
     
     reactNativeFactory?.startReactNative(
-      withModuleName: "CareRounds",
+      withModuleName: "WeCare",
       in: window,
       connectionOptions: connectionOptions
     )

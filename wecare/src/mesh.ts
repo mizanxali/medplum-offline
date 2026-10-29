@@ -16,10 +16,8 @@ import {
   type Synced,
 } from './state';
 
-// The app's first name, kept in identifiers (this, the bundle id, the storage
-// key) so installed phones keep their enrollment and visits.
-const APP_ID = 'carerounds';
-const INVITE_PREFIX = 'carerounds://enroll?c=';
+const APP_ID = 'wecare';
+const INVITE_PREFIX = 'wecare://enroll?c=';
 
 // Bluetooth only. Every phone relays for the others, whatever its battery,
 // because a health worker between two others is how a record gets home.

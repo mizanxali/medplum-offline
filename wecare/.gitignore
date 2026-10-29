@@ -76,3 +76,6 @@ yarn-error.log
 
 # Medplum client credentials (see README)
 src/config.local.ts
+
+# Python
+__pycache__/

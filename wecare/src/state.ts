@@ -128,7 +128,7 @@ export function carry(s: State, c: Carried): State {
 
 let state = INITIAL;
 const listeners = new Set<() => void>();
-const KEY = 'carerounds/state/v1';
+const KEY = 'wecare/state/v1';
 
 export const getState = () => state;
 

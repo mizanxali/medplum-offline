@@ -52,7 +52,7 @@ def on_event(e: dict) -> None:
 
 async def main() -> None:
     config = ProtocolConfig(
-        app_id="carerounds",  # the phones' app id: the mesh only joins its own
+        app_id="wecare",  # the phones' app id: the mesh only joins its own
         profile="mac-relay",
         ble_enabled=True,
         wifi_direct_enabled=False,
@@ -69,7 +69,7 @@ async def main() -> None:
         pending_ttl_ms=180_000,
         overflow_policy=OverflowPolicy.DROP_OLDEST,
     )
-    state = Path(tempfile.gettempdir()) / "carerounds-mac-relay"
+    state = Path(tempfile.gettempdir()) / "wecare-mac-relay"
     async with ProtocolManager(config, event_handler=on_event, state_root=state) as pm:
         pm.protocol.update_relay_config(
             RelayConfig(min_battery_for_relay=0, allow_relay=True, relay_priority=RelayPriority.ALWAYS)

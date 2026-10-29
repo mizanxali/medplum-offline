@@ -63,6 +63,25 @@ conditional create turns into a no-op.
 Without Medplum credentials, steps 1 to 8 work as described and the EHR card
 says what is missing.
 
+### Two phones and a Mac
+
+A Mac can stand in for phone B. `tools/relay.py` joins the same mesh through
+the SDK's Python bindings as a relay only: it enrolls with no one and prints
+each sealed frame it carries, which is the terminal version of B's *Carried for
+others* card.
+
+```sh
+SDK=~/offline-protocol-sdk tools/relay-app.sh   # needs the SDK's Python venv
+tail -f /tmp/cr-relay.log
+```
+
+It runs as a small app because macOS kills a process that uses Bluetooth
+unless its responsible app declares it, and from a terminal that app is the
+terminal. The first run asks for Bluetooth access. Put the Mac between the
+two phones, then carry A far enough from C that the clinic phone no longer
+appears as A's neighbor (a few rooms; Bluetooth reaches further than you
+expect).
+
 ## Medplum setup
 
 Hosted Medplum (app.medplum.com) no longer accepts new projects, so the demo

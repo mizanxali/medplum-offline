@@ -20,10 +20,13 @@ export const SFX = {
   toggle: "https://remotion.media/switch.wav",
 };
 
+/** Calm mix: every effect sits well under the music. */
+const SFX_LEVEL = 0.55;
+
 /** One sound effect starting at `at` (frames, relative to the parent sequence). */
 export const Sfx = ({ at, src, volume = 0.6 }: { at: number; src: string; volume?: number }) => (
   <Sequence from={Math.round(at)} durationInFrames={90} layout="none">
-    <Audio src={src} volume={volume} />
+    <Audio src={src} volume={volume * SFX_LEVEL} />
   </Sequence>
 );
 
@@ -242,7 +245,10 @@ const Key = ({ label, w = 33, dark, lit }: { label?: string; w?: number; dark?: 
   </div>
 );
 
-/** The device: bezel, rounded screen, dynamic island. `dim` darkens the screen (0 … 1). */
+/**
+ * The device: bezel, rounded screen, dynamic island. `dim` (0 … 1) lays a pastel veil
+ * over the whole screen, above the header and status bar, while a title lands.
+ */
 export const Phone = ({ children, dim = 0, style }: { children: ReactNode; dim?: number; style?: CSSProperties }) => (
   <div
     style={{
@@ -256,7 +262,7 @@ export const Phone = ({ children, dim = 0, style }: { children: ReactNode; dim?:
       borderRadius: 64,
       backgroundColor: "#0B0B0C",
       border: "2px solid #3A3A3C",
-      boxShadow: "0 40px 120px #000000CC, inset 0 0 0 1px #000",
+      boxShadow: "0 30px 90px #1D273338, 0 8px 24px #1D27331F, inset 0 0 0 1px #000",
       padding: BEZEL - 2,
       ...style,
     }}
@@ -264,7 +270,7 @@ export const Phone = ({ children, dim = 0, style }: { children: ReactNode; dim?:
     <div style={{ position: "relative", width: SCREEN_W, height: SCREEN_H, borderRadius: 52, overflow: "hidden", backgroundColor: C.bg }}>
       {children}
       <div style={{ position: "absolute", top: 11, left: SCREEN_W / 2 - 62, width: 124, height: 36, borderRadius: 18, backgroundColor: "#000" }} />
-      <div style={{ position: "absolute", inset: 0, backgroundColor: "#000", opacity: dim, pointerEvents: "none" }} />
+      <div style={{ position: "absolute", inset: 0, zIndex: 20, backgroundColor: "#EEF5F8", opacity: dim, pointerEvents: "none" }} />
     </div>
   </div>
 );

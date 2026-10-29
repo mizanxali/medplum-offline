@@ -2,37 +2,38 @@
 
 This describes the video as built in `src/` (composition `Launch`). Times inside a beat are seconds from the beat's start.
 
+**Vibe:** calm and cozy healthcare, not an upbeat launch. Soft light, slow eases, quiet sound, a human opening.
 **Length:** 1:47 (107.2 s). **Format:** 16:9, 1920×1080, 60 fps.
-**Sound:** "Dispersion Relation" by Kevin MacLeod as the music bed, with UI sound effects on the frame of the visual event that causes them. The captions tell the whole story, so it works muted.
-**Look:** mock UI rebuilt from the app's own tokens, fonts and icons (`src/ui/kit.tsx`), not screen-captured. Pastel sky-blue screens (`#E1EFF4`), one maroon accent (`#6E1F30`), and green, amber, orange and red used only for state and risk. Titles in Neuton, everything else in Host Grotesk, Lucide icons at stroke 1.75. Black phone frames sit in the centre of a dark, slow-moving wallpaper. Caption and kinetic type are Host Grotesk, white on black.
-**Touch:** a soft white touch dot moves on eased paths. Each tap presses the dot, throws a ripple and plays a click.
-**Camera:** the frame never stops moving. A slow Ken Burns drift runs under everything, and punch-ins follow the action Screen Studio-style.
+**Sound:** "Wholesome" by Kevin MacLeod as a warm, steady music bed, with quiet UI sound effects (about 0.55× the usual level) on the frame of the visual event that causes them. The captions tell the whole story, so it works muted.
+**Look:** mock UI rebuilt from the app's own tokens, fonts and icons (`src/ui/kit.tsx`), not screen-captured. Pastel sky-blue screens (`#E1EFF4`), one maroon accent (`#6E1F30`), and green, amber, orange and red used only for state and risk. Titles in Neuton, everything else in Host Grotesk, Lucide icons at stroke 1.75. Black phone frames with soft shadows sit on a light, slow-moving wallpaper made from the app's own sky blue, with a warm blush and cream. Captions use the app's ink: titles in Neuton, descriptions in Host Grotesk.
+**Touch:** a soft, ink-tinted touch dot moves on eased paths. Each tap presses the dot, throws a ripple and plays a click.
+**Camera:** the frame never stops moving. A slow Ken Burns drift runs under everything. Punch-ins follow the action but stay gentle: each goes a quarter less deep than the numbers below (so 1.9× plays as about 1.7×), with slow eases and no shake.
 **Cast:** the app's synthetic roster and its own example names. **Ada** is the health worker you follow. **Ben** is a second health worker whose phone carries the visit. **Riverside Clinic** is the clinic hub. The patient is **Ruth Njeri** (Female, 80 · Well Corner 7). Other visits on the clinic list: Samuel Otieno (School Path 3), Peter Achieng (Market Lane 2) and Grace Mwangi (River Road 11).
 
 ### Caption band
 
 - **Position:** the bottom 20% of the frame, fixed and unaffected by the camera.
-- **Scrim:** a black gradient behind the band, up to 70%, so white text stays readable over the light UI.
-- **Two lines, centred:** the title in bold (60 px) and a description line in regular weight (36 px, 80% white).
-- **Description lines:** each feature has three to five lines, each with its own start time. A line types in at about 45 characters per second and fades out 0.2 s before the next one starts, so the description follows what the phone is doing.
+- **Scrim:** a pastel gradient behind the band, up to about 90%, so ink text stays readable over the phone.
+- **Two lines, centred:** the title in Neuton Bold (64 px, ink) and a description line in Host Grotesk (34 px, muted ink).
+- **Description lines:** each feature has three to five lines, each with its own start time. A line fades and rises in over 0.5 s and fades out 0.3 s before the next one starts, so the description follows what the phone is doing. The first line waits for the title to settle (about 1.3 s).
 - **Framing rule:** each punch-in is aimed so the action sits just above the band (about 110 px above the frame centre). When the target is low on the phone (the keyboard, the Save button, the sync card), the camera moves down so the phone rides up.
 
 ### Sound palette
 
 | Sound | Plays on |
 |-------|----------|
-| **Tap** (soft click) | Every touch-dot tap, every stepper press, and the risk bands landing in the score cutaway. |
+| **Tap** (soft click, quiet) | Every touch-dot tap, every stepper press, and the risk bands landing in the score cutaway. |
 | **Key clicks** | Each character of "Ada" typed. A quieter tap, varied in volume. |
 | **Whoosh** | Something moving: a phone sliding in or out, the scanner opening, the sealed record leaving a phone, the receipt travelling back, the record flying into the EHR. |
 | **Toggle** | **Enrolled** ticking in, **Enroll** accepted, **At the clinic** ticking in, each **In EHR** pill, and the Wi-Fi icon appearing. |
 | **Chime** | Only arrivals on the clinic phone: the enrollment request landing and each visit landing in **Visits received**. |
 
-**Music:** quiet under the cold open and full on "signal". Ducked about 3 dB under the score cutaway (Emergency transfer) and the record reaching the clinic, thinning as the phone drops, and silent on the final cut to black. Credit it wherever the video is posted, for example: `Music: "Dispersion Relation" by Kevin MacLeod (incompetech.com), licensed under CC BY 4.0`.
+**Music:** soft under the opening lines, settling in as the phone arrives. Ducked about 3 dB under the score cutaway (Emergency transfer) and the record reaching the clinic, easing out with the closing fade. Credit it wherever the video is posted: `Music: "Wholesome" by Kevin MacLeod (incompetech.com), licensed under CC BY 4.0`.
 
 ### The repeating feature beat
 
-1. **0.0 s:** the title lands in big type, centred over the phone. The phone dims to 40%.
-2. **0.6 s:** the title shrinks and glides down into the caption band (0.5 s). The phone undims and the camera punches in on the action (1.6–1.7×, 0.5 s). The first description line types in at 0.85 s.
+1. **0.0 s:** the title rises in softly (0.6 s), large and centred over the phone. A pastel veil settles over the whole phone screen.
+2. **0.8 s:** the title glides down into the caption band (0.6 s). The veil lifts, the camera eases in on the action, and the first description line fades in once the title has settled (about 1.3 s).
 3. **The feature plays out**, with a hold after every change so the screen can be read, and the description lines change as it goes.
 4. **0.5 s before the end:** the camera punches out to the centred phone, the caption fades down and out, and the next title lands straight away.
 
@@ -42,15 +43,16 @@ The phone's screen content hard-cuts between beats. Beats that pass a record bet
 
 ## 0:00–0:04 · Cold open
 
-**Screen:** pure black. Kinetic type, centred, 128 px, one word at a time:
+**Screen:** the pastel wallpaper, with no phone yet. Two quiet lines rise in slowly (0.9 s each), centred a little above the middle:
 
-> **the** (0.3) · **last** (0.7) · **mile** (1.1) · **has** (1.6) · **no** (2.0) · **signal** (2.4)
+> **Ruth lives an hour from the nearest clinic.** (0.3, Neuton Bold, 84 px, ink)
+> There's no signal at the door. (1.6, Neuton, 60 px, muted ink)
 
-Each word snaps up from a 12 px offset with a blur-to-sharp. At 3.0 s the line shrinks and fades up and out, and the black fades into the wallpaper by 3.5 s. The phone starts entering 0.5 s later.
+At 3.1 s both lines drift up a little and fade out by 3.6 s. The phone starts rising 0.4 s later.
 
 ## 0:04–0:07 · Phone enters
 
-The phone slides up from below the frame with a spring and a little overshoot (0.9 s). It's open on **Riverside Clinic**, the hub's busiest screen. The status line reads **Mesh on · 2 nearby · no internet needed** with a green dot. Under **Visits received (3)**, three visit cards are sorted sickest first: Samuel Otieno **NEWS2 5 · Medium**, Peter Achieng **NEWS2 3 · Low-medium**, Grace Mwangi **NEWS2 0 · Low**. The camera eases in from 0.94× to 1×.
+The phone rises from below the frame and settles softly, with no overshoot (0.9 s). It's open on **Riverside Clinic**, the hub's busiest screen. The status line reads **Mesh on · 2 nearby · no internet needed** with a green dot. Under **Visits received (3)**, three visit cards are sorted sickest first: Samuel Otieno **NEWS2 5 · Medium**, Peter Achieng **NEWS2 3 · Low-medium**, Grace Mwangi **NEWS2 0 · Low**. The camera eases in from 0.94× to 1×.
 
 **Caption band:** `WeCare`, fading out as the first title lands.
 
@@ -110,9 +112,9 @@ The Riverside Clinic phone slides out right at 13.4, and Ada's phone grows back 
 
 **Phone:** the same form, with the camera on the score banner.
 1. At 1.4 the dot taps **New confusion** under **Alertness**. The pill fills maroon, and the banner jumps to **6**: **Urgent referral** on orange, "NEWS2, medium risk."
-2. At 3.6 the form scrolls up and the dot taps the **Deteriorating** preset beside **Vitals**. Every row jumps: Breathing 27, SpO₂ 90, Systolic BP 96, Pulse 124 and Temperature 39.4, each with an orange **+3**/**+2 to score**. The banner counts up to **15** and turns red: **Emergency transfer**, "NEWS2, high risk. Scored on this phone, for adults." A small camera shake lands on 15.
+2. At 3.6 the form scrolls up and the dot taps the **Deteriorating** preset beside **Vitals**. Every row jumps: Breathing 27, SpO₂ 90, Systolic BP 96, Pulse 124 and Temperature 39.4, each with an orange **+3**/**+2 to score**. The banner counts up to **15** and turns red: **Emergency transfer**, "NEWS2, high risk. Scored on this phone, for adults." The 15 swells gently as it lands.
 
-**Hero cutaway (6.4–8.6):** a dark backdrop. The four bands pop in, stacked, one after another (a tap each): **Routine follow-up** (green), **Refer today** (amber), **Urgent referral** (orange), **Emergency transfer** (red, biggest, with a glow). The music ducks.
+**Hero cutaway (6.4–8.6):** a pastel veil over the phone. The four bands pop in, stacked, one after another (a tap each): **Routine follow-up** (green), **Refer today** (amber), **Urgent referral** (orange), **Emergency transfer** (red, biggest, with a glow). The music ducks.
 
 3. Back on the form, scrolled to the bottom (8.8): **Save visit for Ruth** and "Saved on this phone first, then carried to the clinic sealed, through any phones in between." The camera moves down so the button sits above the band. The dot taps Save at 10.0.
 4. Hard cut (10.3) to Ada's home. Ruth Njeri's visit card sits under **Today's visits (1)**: "Female, 80 · Well Corner 7", **NEWS2 15 · High**, the six-cell vitals grid, then **On this phone, finding a route** and **Not in EHR yet**.
@@ -135,7 +137,7 @@ The Riverside Clinic phone slides out right at 13.4, and Ada's phone grows back 
 
 | At | Description |
 |----|-------------|
-| 0.85 | No signal at Ruth's door, so the visit waits on Ada's phone. |
+| 0.85 | Still no signal at Ruth's door, so the visit waits on Ada's phone. |
 | 2.6 | Any WeCare phone that comes within range carries it on. |
 | 4.4 | Sealed for the clinic: the phone in the middle can't read a word. |
 | 8.0 | It reaches the clinic, hopping phone to phone over Bluetooth. |
@@ -163,7 +165,7 @@ At 15.0 Ben's and Ada's phones slide out, and the clinic phone grows to the cent
 1. Left: the clinic's screen scrolls to **Electronic health record**: **5 visits waiting for the EHR**, "Sends on its own once this phone is online. Copies the EHR already has are refused there." and a **Send to EHR now** button. At 1.6 a Wi-Fi icon appears in its status bar (toggle).
 2. Left: at 2.6 **Medplum: 5 added** ticks in, in green, and **Everything is in the EHR** replaces the count. Scrolling up, each visit's **Not in EHR yet** pill flips to **In EHR**, top to bottom, 0.15 s apart (a toggle on the first).
 
-**Hero cutaway (5.4–8.4):** a dark backdrop with an EHR record card in Medplum's style: **Ruth Njeri**, *Encounter · home health · Ada (community health worker)*. Under it, a **Patient**, an **Encounter** and **8 Observations** stack in one by one: Respiratory rate 27 /min, Oxygen saturation 90 %, Systolic blood pressure 96 mmHg, Heart rate 124 /min, Body temperature 39.4 °C, On supplemental oxygen, Level of consciousness (ACVPU) C, NEWS2 total score 15. A small line underneath reads **FHIR R4 · Medplum**.
+**Hero cutaway (5.4–8.4):** a pastel veil with an EHR record card in Medplum's style: **Ruth Njeri**, *Encounter · home health · Ada (community health worker)*. Under it, a **Patient**, an **Encounter** and **8 Observations** stack in one by one: Respiratory rate 27 /min, Oxygen saturation 90 %, Systolic blood pressure 96 mmHg, Heart rate 124 /min, Body temperature 39.4 °C, On supplemental oxygen, Level of consciousness (ACVPU) C, NEWS2 total score 15. A small line underneath reads **FHIR R4 · Medplum**.
 
 3. Right: at 9.0 Ada's phone gets Wi-Fi too (toggle). Ruth's card pill flips from **Not in EHR yet** to **In EHR, already there** (toggle), and the camera punches in on it.
 4. Left: the clinic list holds **one** Ruth Njeri visit throughout.
@@ -180,17 +182,16 @@ At 15.0 Ben's and Ada's phones slide out, and the clinic phone grows to the cent
 
 ## 1:39–1:40 · Exit
 
-Both phones slide down off the frame (ease-in, 0.2–0.8 s) with a quiet whoosh. Only the wallpaper remains, and the music thins out.
+Both phones sink a little (260 px) and fade out over 1 s, with a quiet whoosh. Only the wallpaper remains, and the music begins to ease.
 
 ## 1:40–1:47 · Close
 
-The text starts 0.4 s after the phones have gone.
-1. **built for** lands, 120 px (0.2).
-2. Under it, one setting at a time cycles through in big grey type, 0.5 s each from 0.7: home visits → outreach camps → rural clinics → disaster response → refugee camps.
-3. At 3.3 the cycling word collapses into one smaller line: `home visits · outreach camps · rural clinics · disaster response · refugee camps`.
-4. **on** (4.1) and **Offline Protocol** (4.45) land big underneath.
+The text starts 0.4 s after the phones have gone. Every phrase rises in on its own, slowly, centred a little above the middle.
+1. **Every visit** (0.3) · **finds its way** (0.95) · **to the clinic.** (1.6, in maroon). Neuton Bold, 88 px, on one line.
+2. At 2.9 the line fades out. From 3.4 the WeCare mark settles in: the app icon (the maroon cross on a soft disc) beside **WeCare** in Neuton Bold, 132 px.
+3. **Built on Offline Protocol** (4.4) rises in underneath, Host Grotesk, 36 px, muted ink.
 
-The frame holds, then cuts to black at 6.7 s as the music fades out.
+From 6.0 everything fades back into the wallpaper as the music eases out to silence.
 
 ---
 
@@ -202,7 +203,7 @@ The frame holds, then cuts to black at 6.7 s as the music fades out.
 | 2 | Enroll with a scan | The clinic shows a code. It carries the clinic's key, not a password. / The phone checks the code is genuine before it sends a thing. / Scanning is not enough to join: someone at the clinic taps Enroll. / From now on, Ada's visits are sealed for this clinic alone. |
 | 3 | Record the visit | Pick who you're with from the household list. / Step each vital in as you measure it. No typing on a doorstep. / Every reading shows what it adds to the score. |
 | 4 | The score, on the spot | NEWS2, the early-warning score used across the NHS, worked out on the phone. / It turns the vitals into one clear next step. / From routine follow-up to emergency transfer. / Saved on the phone first, whether there's signal or not. |
-| 5 | Carried by the next phone | No signal at Ruth's door, so the visit waits on Ada's phone. / Any WeCare phone that comes within range carries it on. / Sealed for the clinic: the phone in the middle can't read a word. / It reaches the clinic, hopping phone to phone over Bluetooth. / The clinic's receipt comes back the same way. Until then, Ada's phone keeps resending. |
+| 5 | Carried by the next phone | Still no signal at Ruth's door, so the visit waits on Ada's phone. / Any WeCare phone that comes within range carries it on. / Sealed for the clinic: the phone in the middle can't read a word. / It reaches the clinic, hopping phone to phone over Bluetooth. / The clinic's receipt comes back the same way. Until then, Ada's phone keeps resending. |
 | 6 | Sickest first | The clinic sees every visit, sickest first. / New arrivals slot in by risk, not by time. / The clinic re-scores every visit itself. It never trusts the number sent. / And it only takes visits from phones it enrolled. |
 | 7 | Into the real EHR | When the clinic gets internet, its visits go to the EHR on their own. / A real EHR: Medplum, over the FHIR standard. / Each visit becomes a patient, an encounter and eight observations. / Ada's phone sends its copy too. The EHR refuses the duplicate. / Phones only ever add visits. The EHR stays the record of truth. |
 

@@ -4,14 +4,13 @@ import { AbsoluteFill, Easing, interpolate, useCurrentFrame, useVideoConfig } fr
 import { ACTION, ADA, BEN, DETERIORATING, EARLIER, JOSEPH_VISIT, news2, NORMAL, RUTH, RUTH_VISIT, sickestFirst, type VisitView, type Vitals } from "./data";
 import { ClinicScreen, ScannerScreen, VisitFormScreen, WelcomeScreen, WorkerHome, type Received } from "./screens";
 import { C, F, RISK } from "./theme";
-import { Words } from "./type";
+import { Fade, soft, TITLE_SETTLED } from "./type";
 import { Icon, Keyboard, Phone, SFX, Sfx, TouchDot } from "./ui";
 
 const clamp = { extrapolateLeft: "clamp", extrapolateRight: "clamp" } as const;
 const ease = Easing.bezier(0.65, 0, 0.35, 1);
 const out = Easing.bezier(0.16, 1, 0.3, 1);
 const easeIn = Easing.bezier(0.55, 0, 1, 0.45);
-const overshoot = Easing.bezier(0.34, 1.35, 0.64, 1);
 
 const useClock = () => {
   const frame = useCurrentFrame();
@@ -22,16 +21,21 @@ const useClock = () => {
 /** 0 → 1 between `a` and `b` seconds. */
 const k = (s: number, a: number, b: number, easing = ease) => interpolate(s, [a, b], [0, 1], { ...clamp, easing });
 
-/** The phone dims while the title lands, then undims as it moves into the band. */
-const dim = (s: number) => interpolate(s, [0, 0.12, 0.6, 1.0], [0, 0.6, 0.6, 0], clamp);
+/** A pastel veil settles over the phone while the title lands, and lifts as it moves into the band. */
+const dim = (s: number) => interpolate(s, [0, 0.25, 0.85, TITLE_SETTLED], [0, 0.6, 0.6, 0], clamp);
 
 // ---------------------------------------------------------------- camera
 
 type Key = [sec: number, scale: number, tx: number, ty: number];
 /** Frame y (relative to centre) where the action sits: just above the caption band. */
 const ACTION_Y = -110;
+/** Calm framing: every punch-in goes a quarter less deep than the number asked for. */
+const CALM = 0.75;
 /** Camera that lands point (x, y), relative to the frame centre at scale 1, on the action spot. */
-const aimAt = (sec: number, scale: number, x: number, y: number): Key => [sec, scale, -scale * x, ACTION_Y - scale * y];
+const aimAt = (sec: number, scale: number, x: number, y: number): Key => {
+  const z = 1 + (scale - 1) * CALM;
+  return [sec, z, -z * x, ACTION_Y - z * y];
+};
 /** Same, for screen point (sx, sy) on the centred phone. */
 const aim = (sec: number, scale: number, sx: number, sy: number) => aimAt(sec, scale, sx - 195, sy - 422);
 /** Same, for a screen point on a phone placed at [x, y, scale]. */
@@ -72,7 +76,6 @@ const KeyClicks = ({ text, start, per }: { text: string; start: number; per: num
   );
 };
 
-const shakeAt = (s: number, at: number, len: number, amp: number) => (s >= at && s < at + len ? amp * Math.sin((s - at) * 70) * (1 - (s - at) / len) : 0);
 const bump = (s: number, at: number) => interpolate(s - at, [0, 0.1, 0.35], [0, 1, 0], clamp);
 /** How many of `taps` (seconds) have happened by `s`. */
 const count = (s: number, taps: number[]) => taps.filter((t) => s >= t).length;
@@ -132,22 +135,19 @@ const SAVE_Y = 389;
 
 // ---------------------------------------------------------------- 0:00 cold open
 
+const serif = { fontFamily: F.title, color: C.ink, lineHeight: 1.15 };
+
+/** Two quiet lines that set the scene before the phone arrives. */
 export const ColdOpen = () => {
   const { s } = useClock();
   return (
-    <AbsoluteFill style={{ backgroundColor: "#000", opacity: 1 - k(s, 3.0, 3.5) }}>
-      <Words
-        words={[
-          ["the", 0.3],
-          ["last", 0.7],
-          ["mile", 1.1],
-          ["has", 1.6],
-          ["no", 2.0],
-          ["signal", 2.4],
-        ]}
-        exit={3.0}
-        size={128}
-      />
+    <AbsoluteFill style={{ alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 26, opacity: 1 - k(s, 3.1, 3.6), translate: `0 ${-90 - k(s, 3.1, 3.6) * 20}px` }}>
+      <Fade s={s} at={0.3} style={{ ...serif, fontSize: 84 }}>
+        Ruth lives an hour from the nearest clinic.
+      </Fade>
+      <Fade s={s} at={1.6} style={{ ...serif, fontFamily: F.heading, fontSize: 60, color: C.muted }}>
+        There's no signal at the door.
+      </Fade>
     </AbsoluteFill>
   );
 };
@@ -160,7 +160,7 @@ export const PhoneEnter = () => {
   const { s } = useClock();
   return (
     <Camera keys={[[0, 0.94, 0, 0], [3, 1, 0, 0]]}>
-      <Phone style={{ translate: `0 ${interpolate(s, [0, 0.9], [1100, 0], { ...clamp, easing: overshoot })}px` }}>
+      <Phone style={{ translate: `0 ${interpolate(s, [0, 0.9], [1100, 0], { ...clamp, easing: soft })}px` }}>
         <ClinicScreen nearby={2} workers={[ADA.name, BEN.name]} received={EARLIER_RECEIVED} scroll={150} />
       </Phone>
       <Sfx at={0} src={SFX.whoosh} volume={0.3} />
@@ -236,7 +236,7 @@ export const EnrollBeat = () => {
   const into = k(s, 0.5, 1.1);
   const back = k(s, 13.3, 13.9);
   const ada = lerp(lerp(CENTRE, LEFT, into), CENTRE, back);
-  const clinic: Place = [interpolate(s, [0.6, 1.25], [OFF_RIGHT[0], SPLIT], { ...clamp, easing: overshoot }) + interpolate(s, [13.3, 13.9], [0, 1100], { ...clamp, easing: easeIn }), Y, P];
+  const clinic: Place = [interpolate(s, [0.6, 1.25], [OFF_RIGHT[0], SPLIT], { ...clamp, easing: soft }) + interpolate(s, [13.3, 13.9], [0, 1100], { ...clamp, easing: easeIn }), Y, P];
   const scanning = s >= 1.9 && s < 3.15;
   const adaState = s < 3.15 ? "none" : s < 7.1 ? "waiting" : "enrolled";
   const request = k(s, 4.6, 5.0, out) * (1 - k(s, 6.95, 7.3));
@@ -362,11 +362,11 @@ const RiskHero = ({ s, from, to }: { s: number; from: number; to: number }) => {
   const show = k(s, from, from + 0.3) * (1 - k(s, to - 0.3, to));
   const bands = ["low", "low-medium", "medium", "high"] as const;
   return (
-    <AbsoluteFill style={{ backgroundColor: "#05070AE6", opacity: show, alignItems: "center", justifyContent: "center" }}>
+    <AbsoluteFill style={{ backgroundColor: "#EEF5F8F2", opacity: show, alignItems: "center", justifyContent: "center" }}>
       <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 22, translate: "0 -90px" }}>
         {bands.map((b, i) => {
           const at = from + 0.35 + i * 0.32;
-          const p = k(s, at, at + 0.25, overshoot);
+          const p = k(s, at, at + 0.25, soft);
           const last = i === bands.length - 1;
           const r = RISK[b];
           return (
@@ -381,7 +381,7 @@ const RiskHero = ({ s, from, to }: { s: number; from: number; to: number }) => {
                 fontSize: last ? 76 : 50,
                 opacity: p,
                 scale: String(0.7 + 0.3 * p),
-                boxShadow: last ? `0 0 ${80 * p}px ${C.error}AA` : undefined,
+                boxShadow: last ? `0 10px ${50 * p}px ${C.error}40` : "0 6px 20px #1D27331A",
               }}
             >
               {ACTION[b]}
@@ -421,7 +421,6 @@ export const ScoreBeat = () => {
           aim(11.4, 1.45, 195, 600),
           home(11.9),
         ]}
-        shake={shakeAt(s, 4.4, 0.35, 6)}
       >
         <Phone dim={dim(s)}>
           {cut ? (
@@ -466,8 +465,8 @@ const Reach = ({ at: [x, y], r, show }: { at: Place; r: number; show: number }) 
       width: r * 2,
       height: r * 2,
       borderRadius: r,
-      border: "2px dashed #FFFFFF40",
-      background: "radial-gradient(circle, #FFFFFF10 0%, #FFFFFF04 60%, #FFFFFF00 72%)",
+      border: "2px dashed #6E1F3038",
+      background: "radial-gradient(circle, #6E1F300C 0%, #6E1F3005 60%, #6E1F3000 72%)",
       opacity: show,
       scale: String(0.85 + 0.15 * show),
     }}
@@ -494,7 +493,7 @@ const Packet = ({ s, from, to, a, b, small }: { s: number; from: number; to: num
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        boxShadow: `0 0 30px ${C.accent}`,
+        boxShadow: `0 8px 24px ${C.accent}55`,
         opacity: interpolate(t, [0, 0.1, 0.9, 1], [0, 1, 1, 0]),
       }}
     >
@@ -515,8 +514,8 @@ const clinicList = (extra: Received[] = []) => sickestFirst([...EARLIER, ...extr
 export const CarryBeat = () => {
   const { s, fps } = useClock();
   const ada = lerp(lerp(CENTRE, T_LEFT, k(s, 0.4, 1.0)), [-1300, TY, TRIO], k(s, 15.0, 15.6, easeIn));
-  const clinic = lerp(lerp([1300, TY, TRIO], T_RIGHT, k(s, 0.5, 1.1, overshoot)), CENTRE, k(s, 15.0, 15.8));
-  const ben = lerp(lerp([0, 900, TRIO], T_MID, k(s, 2.2, 2.8, overshoot)), [0, 1000, TRIO], k(s, 15.0, 15.5, easeIn));
+  const clinic = lerp(lerp([1300, TY, TRIO], T_RIGHT, k(s, 0.5, 1.1, soft)), CENTRE, k(s, 15.0, 15.8));
+  const ben = lerp(lerp([0, 900, TRIO], T_MID, k(s, 2.2, 2.8, soft)), [0, 1000, TRIO], k(s, 15.0, 15.5, easeIn));
   const reach = k(s, 1.0, 1.5) * (1 - k(s, 14.8, 15.2));
   const delivered = s >= 10.6 ? 1 + (s - 10.6) : 0;
   const centre = (p: Place, sy: number): [number, number] => [p[0], p[1] + (sy - 422) * p[2]];
@@ -613,8 +612,8 @@ const EhrHero = ({ s, from, to }: { s: number; from: number; to: number }) => {
   const item = (i: number) => k(s, from + 0.5 + i * 0.12, from + 0.7 + i * 0.12, out);
   const line = { fontFamily: F.body, fontSize: 25, color: C.ink };
   return (
-    <AbsoluteFill style={{ backgroundColor: "#05070AE6", opacity: show, alignItems: "center", justifyContent: "center" }}>
-      <div style={{ width: 1060, translate: "0 -100px", backgroundColor: C.surface, borderRadius: 16, padding: "32px 40px", boxShadow: "0 30px 120px #000", scale: String(0.94 + 0.06 * show) }}>
+    <AbsoluteFill style={{ backgroundColor: "#EEF5F8F2", opacity: show, alignItems: "center", justifyContent: "center" }}>
+      <div style={{ width: 1060, translate: "0 -100px", backgroundColor: C.surface, borderRadius: 16, padding: "32px 40px", boxShadow: "0 30px 90px #1D273333", scale: String(0.94 + 0.06 * show) }}>
         <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
           <span style={{ fontFamily: F.title, fontSize: 54, color: C.ink }}>{RUTH.name}</span>
           <span style={{ fontFamily: F.medium, fontSize: 22, color: C.muted }}>FHIR R4 · Medplum</span>
@@ -644,7 +643,7 @@ export const EhrBeat = () => {
   const { s, fps } = useClock();
   const into = k(s, 0.4, 1.0);
   const clinic = lerp(CENTRE, LEFT, into);
-  const ada: Place = [interpolate(s, [0.5, 1.15], [OFF_RIGHT[0], SPLIT], { ...clamp, easing: overshoot }), Y, P];
+  const ada: Place = [interpolate(s, [0.5, 1.15], [OFF_RIGHT[0], SPLIT], { ...clamp, easing: soft }), Y, P];
   const synced = s >= 2.6;
   const list = clinicList([{ v: RUTH_VISIT_PENDING }, { v: JOSEPH_VISIT }]).map((r, i) => ({ v: { ...r.v, ehr: synced && s >= FLIP_AT(i) ? ("added" as const) : ("pending" as const) } }));
   const scroll = interpolate(s, [0.6, 1.3, 3.1, 3.8], [CLINIC_LIST_SCROLL, EHR_SCROLL, EHR_SCROLL, CLINIC_LIST_SCROLL], { ...clamp, easing: ease });
@@ -694,84 +693,61 @@ const EhrEnd = () => (
 
 export const Exit = () => {
   const { s } = useClock();
-  const drop = interpolate(s, [0.2, 0.8], [0, 1150], { ...clamp, easing: easeIn });
+  const drop = interpolate(s, [0.1, 1.1], [0, 260], { ...clamp, easing: easeIn });
+  const fade = interpolate(s, [0.1, 1.1], [1, 0], clamp);
   return (
-    <>
+    <AbsoluteFill style={{ opacity: fade }}>
       <Placed at={[LEFT[0], LEFT[1] + drop, P]}>
         <EhrEnd />
       </Placed>
       <Placed at={[RIGHT[0], RIGHT[1] + drop, P]}>
         <WorkerHome name={ADA.name} nearby={1} clinic="enrolled" enrolled={1} sent={[{ v: { ...RUTH_VISIT, ehr: "already" }, delivered: 2 }]} scroll={ADA_CARD_SCROLL} wifi={1} />
       </Placed>
-      <Sfx at={12} src={SFX.whoosh} volume={0.2} />
-    </>
+      <Sfx at={12} src={SFX.whoosh} volume={0.15} />
+    </AbsoluteFill>
   );
 };
 
-const PLACES = ["home visits", "outreach camps", "rural clinics", "disaster response", "refugee camps"];
-const PLACE_AT = (i: number) => 0.7 + i * 0.5; // each setting holds 0.5 s in the slot
-const COLLAPSE = 3.3; // the cycling slot turns into the full list
+/** The app's launcher icon: a maroon cross on a soft disc. */
+const AppMark = ({ size }: { size: number }) => (
+  <div style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: C.accentSoft, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 10px 30px #6E1F301F" }}>
+    <div style={{ position: "relative", width: size * 0.46, height: size * 0.46 }}>
+      <div style={{ position: "absolute", left: "33%", width: "34%", height: "100%", borderRadius: size * 0.05, backgroundColor: C.accent }} />
+      <div style={{ position: "absolute", top: "33%", height: "34%", width: "100%", borderRadius: size * 0.05, backgroundColor: C.accent }} />
+    </div>
+  </div>
+);
 
-/** Text that snaps up from 12 px with a blur, at `at` seconds. */
-const Rise = ({ s, at, children, style }: { s: number; at: number; children: ReactNode; style?: React.CSSProperties }) => {
-  const r = k(s, at, at + 0.2, out);
-  return <span style={{ opacity: r, translate: `0 ${(1 - r) * 12}px`, filter: `blur(${(1 - r) * 10}px)`, whiteSpace: "nowrap", ...style }}>{children}</span>;
-};
-
-const big = { fontFamily: F.strong, fontSize: 120, letterSpacing: -4, color: C.text, lineHeight: 1 };
-
-/** "built for" over a slot that cycles through the settings, then "on Offline Protocol". */
+/**
+ * The closing line, one phrase at a time, then the WeCare mark and what it runs on.
+ * Everything fades back into the wallpaper with the music.
+ */
 export const Close = () => {
   const { s } = useClock();
+  const line = 1 - k(s, 2.9, 3.4);
+  const mark = k(s, 3.4, 4.3, soft);
   return (
-    <>
-      <AbsoluteFill style={{ alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 34 }}>
-        <Rise s={s} at={0.2} style={big}>
-          built for
-        </Rise>
-        <div style={{ position: "relative", width: 1800, height: 130 }}>
-          {PLACES.map((p, i) => {
-            const enter = k(s, PLACE_AT(i), PLACE_AT(i) + 0.2, out);
-            const leave = i < PLACES.length - 1 ? k(s, PLACE_AT(i + 1), PLACE_AT(i + 1) + 0.15) : k(s, COLLAPSE, COLLAPSE + 0.2);
-            return (
-              <span
-                key={p}
-                style={{
-                  ...big,
-                  position: "absolute",
-                  inset: 0,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: C.grey,
-                  opacity: enter * (1 - leave),
-                  translate: `0 ${(1 - enter) * 40 - leave * 40}px`,
-                  filter: `blur(${(1 - enter) * 10 + leave * 10}px)`,
-                }}
-              >
-                {p}
-              </span>
-            );
-          })}
-          <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", gap: 16 }}>
-            {PLACES.map((p, i) => (
-              <Rise key={p} s={s} at={COLLAPSE + 0.15 + i * 0.07} style={{ fontFamily: F.medium, fontSize: 44, color: C.grey }}>
-                {i ? <span style={{ color: C.dark, marginRight: 16 }}>·</span> : null}
-                {p}
-              </Rise>
-            ))}
-          </div>
+    <AbsoluteFill style={{ opacity: 1 - k(s, 6.0, 6.9), alignItems: "center", justifyContent: "center" }}>
+      <div style={{ position: "absolute", display: "flex", gap: 24, opacity: line, translate: `0 ${-60 - (1 - line) * 20}px` }}>
+        <Fade s={s} at={0.3} style={{ ...serif, fontSize: 88 }}>
+          Every visit
+        </Fade>
+        <Fade s={s} at={0.95} style={{ ...serif, fontSize: 88 }}>
+          finds its way
+        </Fade>
+        <Fade s={s} at={1.6} style={{ ...serif, fontSize: 88, color: C.accent }}>
+          to the clinic.
+        </Fade>
+      </div>
+      <div style={{ position: "absolute", display: "flex", flexDirection: "column", alignItems: "center", gap: 26, translate: "0 -70px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 30, opacity: mark, translate: `0 ${(1 - mark) * 16}px` }}>
+          <AppMark size={128} />
+          <span style={{ ...serif, fontSize: 132 }}>WeCare</span>
         </div>
-        <div style={{ display: "flex", gap: 34 }}>
-          <Rise s={s} at={4.1} style={big}>
-            on
-          </Rise>
-          <Rise s={s} at={4.45} style={big}>
-            Offline Protocol
-          </Rise>
-        </div>
-      </AbsoluteFill>
-      {s >= 6.7 && <AbsoluteFill style={{ backgroundColor: "#000" }} />}
-    </>
+        <Fade s={s} at={4.4} style={{ fontFamily: F.body, fontSize: 36, color: C.muted }}>
+          Built on Offline Protocol
+        </Fade>
+      </div>
+    </AbsoluteFill>
   );
 };

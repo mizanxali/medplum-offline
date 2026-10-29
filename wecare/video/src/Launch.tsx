@@ -105,7 +105,7 @@ export const Launch = () => {
           <Caption
             title="Carried by the next phone"
             lines={[
-              [0.85, "No signal at Ruth's door, so the visit waits on Ada's phone."],
+              [0.85, "Still no signal at Ruth's door, so the visit waits on Ada's phone."],
               [2.6, "Any WeCare phone that comes within range carries it on."],
               [4.4, "Sealed for the clinic: the phone in the middle can't read a word."],
               [8.0, "It reaches the clinic, hopping phone to phone over Bluetooth."],
@@ -138,18 +138,18 @@ export const Launch = () => {
         </Sequence>
       </Track>
       <Track name="Music">
-        {/* "Dispersion Relation" by Kevin MacLeod (incompetech.com), CC BY 4.0: credit it wherever the video is posted. */}
+        {/* "Wholesome" by Kevin MacLeod (incompetech.com), CC BY 4.0: credit it wherever the video is posted. */}
         <Audio
-          name="Dispersion Relation"
-          src={staticFile("music/dispersion-relation.mp3")}
+          name="Wholesome"
+          src={staticFile("music/wholesome.mp3")}
           durationInFrames={durationInFrames}
           volume={(f) =>
             interpolate(
               f,
-              // quiet under the cold open, full on "signal", ducked ~3 dB under the risk bands
-              // and the visit reaching the clinic, thinning at the exit, gone on the final cut
-              [0, 2.3 * fps, 2.5 * fps, 51.2 * fps, 51.4 * fps, 53.6 * fps, 54 * fps, 64.8 * fps, 65 * fps, 66.8 * fps, 67.2 * fps, 99 * fps, 101 * fps, 106.8 * fps],
-              [0.12, 0.12, 0.4, 0.4, 0.28, 0.28, 0.4, 0.4, 0.28, 0.28, 0.4, 0.4, 0.26, 0],
+              // soft under the opening lines, settling in as the phone arrives, ducked ~3 dB under
+              // the risk bands and the visit reaching the clinic, easing out with the closing fade
+              [0, 3.6 * fps, 4.6 * fps, 51.2 * fps, 51.6 * fps, 53.4 * fps, 54 * fps, 64.8 * fps, 65.2 * fps, 66.8 * fps, 67.4 * fps, 99 * fps, 101 * fps, 107.1 * fps],
+              [0.18, 0.18, 0.32, 0.32, 0.22, 0.22, 0.32, 0.32, 0.22, 0.22, 0.32, 0.32, 0.24, 0],
               { extrapolateLeft: "clamp", extrapolateRight: "clamp" },
             )
           }

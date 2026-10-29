@@ -22,10 +22,6 @@ export const C = {
   amberSoft: "#FBF1DD",
   orange: "#C2541A",
   orangeSoft: "#FCEADD",
-  // video chrome, outside the app
-  text: "#FAFAFA",
-  grey: "#A1A1A1",
-  dark: "#5C5C5C",
 };
 
 export const F = {

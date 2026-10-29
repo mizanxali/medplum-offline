@@ -9,6 +9,21 @@ phone holding it has internet.
 Built on [`@offline-protocol/mesh-sdk`](https://www.npmjs.com/package/@offline-protocol/mesh-sdk) 0.31,
 React Native 0.88. Patients are synthetic; no real person is behind any record.
 
+## A walk through it
+
+Stills from the launch video (`video/`, built in Remotion from the app's own
+screens). The patients and health workers are the app's synthetic demo data.
+
+![Set up a phone](docs/video/1-setup.jpg)
+![Enroll with a scan](docs/video/2-enroll.jpg)
+![Ada's phone enrolled at Riverside Clinic](docs/video/3-enroll-phones.jpg)
+![Record the visit](docs/video/4-record.jpg)
+![The score, on the spot](docs/video/5-score.jpg)
+![Carried by the next phone](docs/video/6-carried.jpg)
+![Ruth's visit reaching the clinic through Ben's phone](docs/video/7-carried-phones.jpg)
+![Into the real EHR](docs/video/8-ehr.jpg)
+![The visit in the EHR on the clinic's phone, and Ada's copy already there](docs/video/9-ehr-phones.jpg)
+
 ## What it shows
 
 - **Sealed relay.** A visit goes from the health worker to the clinic as an

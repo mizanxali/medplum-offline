@@ -5,12 +5,16 @@ import { ACTION, ADA, BEN, DETERIORATING, EARLIER, JOSEPH_VISIT, news2, NORMAL, 
 import { ClinicScreen, ScannerScreen, VisitFormScreen, WelcomeScreen, WorkerHome, type Received } from "./screens";
 import { C, F, RISK } from "./theme";
 import { Fade, soft } from "./type";
-import { Icon, Keyboard, Phone, TouchDot } from "./ui";
+import { Icon, Keyboard, Phone, TouchDot, Transition } from "./ui";
 
 const clamp = { extrapolateLeft: "clamp", extrapolateRight: "clamp" } as const;
 const ease = Easing.bezier(0.65, 0, 0.35, 1);
 const out = Easing.bezier(0.16, 1, 0.3, 1);
 const easeIn = Easing.bezier(0.55, 0, 1, 0.45);
+/** The curve iOS uses for navigation: quick to start, long to settle. */
+const ios = Easing.bezier(0.2, 0.9, 0.25, 1);
+/** A screen change's progress, 0 → 1 between `a` and `b` seconds. */
+const swap = (s: number, a: number, b: number) => k(s, a, b, ios);
 
 const useClock = () => {
   const frame = useCurrentFrame();
@@ -206,7 +210,7 @@ export const PhoneEnter = () => {
   return (
     <Camera keys={[[0, 0.94, 0, 0], [3, 1, 0, 0]]}>
       <Phone style={{ translate: `0 ${interpolate(s, [0, 0.9], [1100, 0], { ...clamp, easing: soft })}px` }}>
-        <ClinicScreen nearby={2} workers={[ADA.name, BEN.name]} received={EARLIER_RECEIVED} scroll={150} />
+        <Transition p={swap(s, 2.3, 2.95)} kind="fade" from={<ClinicScreen nearby={2} workers={[ADA.name, BEN.name]} received={EARLIER_RECEIVED} scroll={150} />} to={<WelcomeScreen role="chw" name="" />} />
       </Phone>
     </Camera>
   );
@@ -223,7 +227,6 @@ export const SetupBeat = () => {
   const kb = k(s, 4.3, 4.6) - k(s, 6.2, 6.5);
   const scroll = WELCOME_SCROLL * k(s, 4.3, 4.6);
   const name = typing("Ada", s, NAME_START, NAME_PER);
-  const cut = s >= 7.2;
   return (
     <Camera
       keys={[
@@ -234,23 +237,26 @@ export const SetupBeat = () => {
         aim(4.4, 1.9, 195, NAME_Y - WELCOME_SCROLL),
         aim(6.0, 1.9, 195, NAME_Y - WELCOME_SCROLL),
         aim(6.5, 1.6, 195, START_Y - WELCOME_SCROLL - 40),
-        aim(7.19, 1.6, 195, START_Y - WELCOME_SCROLL - 40),
-        aim(7.2, 1.9, 150, 125),
-        aim(9.0, 1.9, 150, 125),
+        aim(7.0, 1.6, 195, START_Y - WELCOME_SCROLL - 40),
+        aim(7.8, 1.9, 150, 125),
+        aim(9.2, 1.9, 150, 125),
         aim(10.0, 1.5, 195, 230),
         home(10.5),
       ]}
     >
       <Phone>
-        {cut ? (
-          <WorkerHome name={ADA.name} nearby={2} clinic="none" />
-        ) : (
-          <>
-            <WelcomeScreen role={role} name={name.value} caret={s >= 4.2 && s < 6.2} pressed={held(s, [6.8])} scroll={scroll} />
-            <Keyboard show={kb} pressed={name.pressed} />
-          </>
-        )}
-        {!cut && (
+        <Transition
+          p={swap(s, 6.95, 7.6)}
+          kind="fade"
+          from={
+            <>
+              <WelcomeScreen role={role} name={name.value} caret={s >= 4.2 && s < 6.2} pressed={held(s, [6.8])} scroll={scroll} />
+              <Keyboard show={kb} pressed={name.pressed} />
+            </>
+          }
+          to={<WorkerHome name={ADA.name} nearby={2} clinic="none" />}
+        />
+        {s < 7.2 && (
           <Touch
             path={[
               [1.3, 220, 560],
@@ -278,8 +284,9 @@ export const EnrollBeat = () => {
   const { s } = useClock();
   const ada = lerp(RIGHT, CENTRE, k(s, 13.3, 13.9));
   const clinic: Place = [interpolate(s, [0.6, 1.25], [-OFF, -SPLIT], { ...clamp, easing: soft }) - interpolate(s, [13.3, 13.9], [0, 1500], { ...clamp, easing: easeIn }), Y, P];
-  const scanning = s >= 1.9 && s < 3.15;
-  const adaState = s < 3.15 ? "none" : s < 7.1 ? "waiting" : "enrolled";
+  const adaState = s < 3.1 ? "none" : s < 7.1 ? "waiting" : "enrolled";
+  const scanner = <ScannerScreen qr={k(s, 2.1, 2.8, out)} flash={interpolate(s, [2.85, 2.95, 3.15], [0, 1, 0], clamp)} />;
+  const adaHome = <WorkerHome name={ADA.name} nearby={2} clinic={adaState} enrolled={k(s, 7.1, 7.45, out)} />;
   const request = k(s, 4.6, 5.0, out) * (1 - k(s, 6.95, 7.3));
   return (
     <Camera
@@ -295,7 +302,7 @@ export const EnrollBeat = () => {
       ]}
     >
       <Placed at={ada}>
-        {scanning ? <ScannerScreen qr={k(s, 2.0, 2.8, out)} flash={interpolate(s, [2.85, 2.95, 3.15], [0, 1, 0], clamp)} /> : <WorkerHome name={ADA.name} nearby={2} clinic={adaState} enrolled={k(s, 7.1, 7.45, out)} />}
+        {s < 2.6 ? <Transition p={swap(s, 1.7, 2.3)} kind="present" from={adaHome} to={scanner} /> : <Transition p={swap(s, 3.1, 3.65)} kind="dismiss" from={scanner} to={adaHome} />}
         <Touch
           path={[
             [1.1, 230, 420],
@@ -330,7 +337,6 @@ export const RECORDED = recorded(99);
 
 export const RecordBeat = () => {
   const { s } = useClock();
-  const form = s >= 1.9;
   const scroll = VITALS_SCROLL * k(s, 4.4, 4.9);
   const pressed = held(s, PLUS_TAPS) ? "respRate+" : held(s, MINUS_TAPS) ? "spo2-" : undefined;
   return (
@@ -339,8 +345,8 @@ export const RecordBeat = () => {
         home(0),
         home(0.6),
         aim(1.1, 1.5, 195, NEW_VISIT_Y),
-        aim(1.89, 1.5, 195, NEW_VISIT_Y),
-        aim(1.9, 1.4, 195, 380),
+        aim(1.7, 1.5, 195, NEW_VISIT_Y),
+        aim(2.4, 1.4, 195, 380),
         aim(4.0, 1.4, 195, 380),
         aim(4.9, 1.55, 220, ROW_Y(0) + 40),
         aim(7.4, 1.55, 220, ROW_Y(0) + 40),
@@ -351,12 +357,13 @@ export const RecordBeat = () => {
       ]}
     >
       <Phone>
-        {form ? (
-          <VisitFormScreen patient={s >= 2.8 ? RUTH : undefined} v={recorded(s)} scroll={scroll} pressed={pressed} />
-        ) : (
-          <WorkerHome name={ADA.name} nearby={2} clinic="enrolled" enrolled={1} />
-        )}
-        {!form && (
+        <Transition
+          p={swap(s, 1.7, 2.25)}
+          kind="push"
+          from={<WorkerHome name={ADA.name} nearby={2} clinic="enrolled" enrolled={1} />}
+          to={<VisitFormScreen patient={s >= 2.8 ? RUTH : undefined} v={recorded(s)} scroll={scroll} pressed={pressed} />}
+        />
+        {s < 1.85 && (
           <Touch
             path={[
               [1.1, 230, 420],
@@ -366,7 +373,7 @@ export const RecordBeat = () => {
             end={1.85}
           />
         )}
-        {form && (
+        {s >= 1.85 && (
           <Touch
             path={[
               [2.2, 200, 520],
@@ -433,7 +440,6 @@ export const ScoreBeat = () => {
   const counting = s >= 3.6 && s < 4.4;
   const shown = counting ? Math.round(interpolate(s, [3.6, 4.4], [news2(CONFUSED).total, news2(DETERIORATING).total], clamp)) : undefined;
   const scroll = interpolate(s, [0.6, 1.1, 2.7, 3.2, 8.7, 9.2], [VITALS_SCROLL, ALERT_SCROLL, ALERT_SCROLL, PRESET_SCROLL, PRESET_SCROLL, SAVE_SCROLL], { ...clamp, easing: ease });
-  const cut = s >= 10.3;
   return (
     <>
       <Camera
@@ -447,19 +453,20 @@ export const ScoreBeat = () => {
           home(6.4),
           home(8.7),
           aim(9.2, 1.5, 195, SAVE_Y + 10),
-          aim(10.29, 1.5, 195, SAVE_Y + 10),
-          aim(10.3, 1.45, 195, 600),
+          aim(10.15, 1.5, 195, SAVE_Y + 10),
+          aim(10.9, 1.45, 195, 600),
           aim(11.4, 1.45, 195, 600),
           home(11.9),
         ]}
       >
         <Phone>
-          {cut ? (
-            <WorkerHome name={ADA.name} nearby={2} clinic="enrolled" enrolled={1} sent={[{ v: RUTH_VISIT_PENDING, delivered: 0 }]} scroll={220} />
-          ) : (
-            <VisitFormScreen patient={RUTH} v={vitals} shown={shown} bump={bump(s, 4.4)} scroll={scroll} pressed={held(s, [3.6]) ? "Deteriorating" : held(s, [10.0]) ? "save" : undefined} />
-          )}
-          {!cut && (
+          <Transition
+            p={swap(s, 10.15, 10.7)}
+            kind="pop"
+            from={<VisitFormScreen patient={RUTH} v={vitals} shown={shown} bump={bump(s, 4.4)} scroll={scroll} pressed={held(s, [3.6]) ? "Deteriorating" : held(s, [10.0]) ? "save" : undefined} />}
+            to={<WorkerHome name={ADA.name} nearby={2} clinic="enrolled" enrolled={1} sent={[{ v: RUTH_VISIT_PENDING, delivered: 0 }]} scroll={220} />}
+          />
+          {s < 10.3 && (
             <Touch
               path={[
                 [0.9, 240, 560],
@@ -667,7 +674,7 @@ export const EhrBeat = () => {
   const ada: Place = [interpolate(s, [0.6, 1.25], [OFF, SPLIT], { ...clamp, easing: soft }), Y, P];
   const synced = s >= 2.6;
   const list = clinicList([{ v: RUTH_VISIT_PENDING }, { v: JOSEPH_VISIT }]).map((r, i) => ({ v: { ...r.v, ehr: synced && s >= FLIP_AT(i) ? ("added" as const) : ("pending" as const) } }));
-  const scroll = interpolate(s, [0.6, 1.3, 3.1, 3.8], [CLINIC_LIST_SCROLL, EHR_SCROLL, EHR_SCROLL, CLINIC_LIST_SCROLL], { ...clamp, easing: ease });
+  const scroll = interpolate(s, [0.6, 1.3, 3.1, 3.8], [0, EHR_SCROLL, EHR_SCROLL, CLINIC_LIST_SCROLL], { ...clamp, easing: ease });
   const adaEhr = s >= 9.4 ? "already" : "pending";
   return (
     <>

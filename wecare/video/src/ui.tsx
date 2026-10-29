@@ -171,6 +171,63 @@ export const Screen = ({ header, children, scroll = 0, wifi, overlay }: { header
   </div>
 );
 
+/**
+ * An in-app screen change, as iOS draws it. `p` runs 0 → 1 from `from` to `to`.
+ * push/pop: the new screen slides over from the right (or back off to the right)
+ * while the one beneath drifts a third of the way and shades slightly.
+ * present/dismiss: a full-screen sheet rises from (or sinks to) the bottom.
+ * fade: a fade-through for a change that isn't navigation: the old screen fades
+ * to the app's background, then the new one fades in, so no two screens overlap.
+ */
+export const Transition = ({ p, kind, from, to }: { p: number; kind: "push" | "pop" | "present" | "dismiss" | "fade"; from: ReactNode; to: ReactNode }) => {
+  if (p <= 0) return <>{from}</>;
+  if (p >= 1) return <>{to}</>;
+  const layer = (child: ReactNode, style: CSSProperties, shade = 0) => (
+    <div style={{ position: "absolute", inset: 0, overflow: "hidden", ...style }}>
+      {child}
+      {shade > 0 && <div style={{ position: "absolute", inset: 0, backgroundColor: "#1D2733", opacity: shade, zIndex: 15 }} />}
+    </div>
+  );
+  const edge = { boxShadow: "-12px 0 30px #1D273326" };
+  switch (kind) {
+    case "push":
+      return (
+        <>
+          {layer(from, { translate: `${-SCREEN_W * 0.3 * p}px 0` }, 0.1 * p)}
+          {layer(to, { translate: `${SCREEN_W * (1 - p)}px 0`, ...edge })}
+        </>
+      );
+    case "pop":
+      return (
+        <>
+          {layer(to, { translate: `${-SCREEN_W * 0.3 * (1 - p)}px 0` }, 0.1 * (1 - p))}
+          {layer(from, { translate: `${SCREEN_W * p}px 0`, ...edge })}
+        </>
+      );
+    case "present":
+      return (
+        <>
+          {layer(from, {}, 0.15 * p)}
+          {layer(to, { translate: `0 ${SCREEN_H * (1 - p)}px`, boxShadow: "0 -12px 30px #1D273326" })}
+        </>
+      );
+    case "dismiss":
+      return (
+        <>
+          {layer(to, {}, 0.15 * (1 - p))}
+          {layer(from, { translate: `0 ${SCREEN_H * p}px`, boxShadow: "0 -12px 30px #1D273326" })}
+        </>
+      );
+    default:
+      return (
+        <>
+          <div style={{ position: "absolute", inset: 0, backgroundColor: C.bg }} />
+          {p < 0.5 ? layer(from, { opacity: 1 - p * 2, scale: String(1 - p * 0.02) }) : layer(to, { opacity: p * 2 - 1, scale: String(0.99 + (p - 0.5) * 0.02) })}
+        </>
+      );
+  }
+};
+
 /** iOS light keyboard, sliding up by `show` (0 … 1). */
 export const Keyboard = ({ show, pressed }: { show: number; pressed?: string }) => {
   const rows = ["qwertyuiop", "asdfghjkl", "zxcvbnm"];

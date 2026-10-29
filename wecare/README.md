@@ -1,97 +1,127 @@
-This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+# CareRounds
 
-# Getting Started
+Community health worker visits with no signal. A health worker records a
+home visit and gets an early-warning score on the phone. The record travels
+to the clinic sealed, over Bluetooth, through any other health worker's phone
+in between, and lands in a real EHR (Medplum, over FHIR R4) as soon as any
+phone holding it has internet.
 
-> **Note**: Make sure you have completed the [Set Up Your Environment](https://reactnative.dev/docs/set-up-your-environment) guide before proceeding.
+Built on [`@offline-protocol/mesh-sdk`](https://www.npmjs.com/package/@offline-protocol/mesh-sdk) 0.31,
+React Native 0.88. Patients are synthetic; no real person is behind any record.
 
-## Step 1: Start Metro
+## What it shows
 
-First, you will need to run **Metro**, the JavaScript build tool for React Native.
+- **Sealed relay.** A visit goes from the health worker to the clinic as an
+  MLS-encrypted 1:1 message. A third phone in between forwards it (and holds
+  it if the next hop is out of range) and shows that it did, under *Carried
+  for others*, but it can only see who the frame is from and to, never the
+  vitals inside.
+- **Enrollment by QR.** The clinic shows a code from the SDK's
+  `createInvite`. The health worker's phone scans it, `parseInvite` checks
+  that the address derives from the key in the code, and sends a connection
+  request that clinic staff accept on screen. The clinic only accepts visits
+  from phones it enrolled, and a health worker only accepts receipts from its
+  own clinic.
+- **Clinical scoring on the device.** NEWS2 (Royal College of Physicians,
+  2017) from respiration, SpO2, oxygen, systolic BP, pulse, consciousness and
+  temperature. The clinic recomputes it from the vitals; it never trusts a
+  score sent over the wire.
+- **Idempotent EHR sync.** Each visit becomes one FHIR transaction: Patient,
+  Encounter and eight Observations, each a conditional create on a stable
+  identifier. The server, not the phone, refuses a second copy, so the health
+  worker's phone and the clinic can both sync the same visit and Medplum keeps
+  one.
 
-To start the Metro dev server, run the following command from the root of your React Native project:
+## Record authority
+
+The EHR is the record of authority. A phone never edits anything there: every
+visit is a new Encounter with new Observations, created only if its identifier
+is not already present. Offline capture therefore cannot conflict with the
+cloud chart; at worst it adds a visit the clinic already had, which the
+conditional create turns into a no-op.
+
+## Demo (three phones, about five minutes)
+
+1. **Phone C**, *Clinic hub*, named e.g. "Riverside Clinic". It shows its code.
+2. **Phone A**, *Health worker* "Ada": **Scan clinic code**. On C, tap
+   **Enroll**. A shows *Enrolled*.
+3. **Phone B**, *Health worker* "Ben": enroll the same way.
+4. Turn on **airplane mode with Bluetooth on** for all three. No internet from
+   here.
+5. Walk A out of C's range, with B in between.
+6. **A:** **New visit**, choose a patient, tap the **Deteriorating** preset.
+   NEWS2 turns red: *Emergency transfer*. **Save**.
+7. **C:** the visit appears at the top, *via 1 other phone*. **A:** the visit
+   turns *At the clinic*.
+8. **B:** *Carried for others* shows the frames it forwarded between Ada and
+   Riverside Clinic, and nothing about the patient.
+9. **C:** turn off airplane mode. Within 15 seconds the visit shows *In EHR*.
+   Open it in Medplum (below).
+10. **A:** turn off airplane mode. Its own copy syncs as *In EHR (already
+    there)*: the server refused the duplicate.
+
+Without Medplum credentials, steps 1 to 8 work as described and the EHR card
+says what is missing.
+
+## Medplum setup
+
+1. Create a free project at [app.medplum.com](https://app.medplum.com).
+   Use it for synthetic data only.
+2. **Project Admin → Clients → New client**. Copy its ID and secret.
+3. `cp src/config.local.example.ts src/config.local.ts` and fill them in.
+   `config.local.ts` is gitignored. The secret is compiled into the app, so
+   this is a demo setup, not a deployment: a production gateway would hold the
+   credential server-side.
+4. In Medplum, open **Encounter** and search by identifier
+   (`urn:carerounds:visit|<id>`), or open the patient to see the
+   Observations on their timeline.
+
+## Run
 
 ```sh
-# Using npm
+npm install
+cd ios && bundle install && bundle exec pod install && cd ..
 npm start
-
-# OR using Yarn
-yarn start
+npm run ios -- --device      # or: npm run android
 ```
 
-## Step 2: Build and run your app
+Physical phones only: simulators have no Bluetooth peers. Each phone needs
+Bluetooth on; Android asks for Bluetooth and location access, and for the
+camera before scanning.
 
-With Metro running, open a new terminal window/pane from the root of your React Native project, and use one of the following commands to build and run your Android or iOS app:
-
-### Android
+## Checks
 
 ```sh
-# Using npm
-npm run android
-
-# OR using Yarn
-yarn android
+npx tsc --noEmit && npx eslint App.tsx src __tests__ && npx jest
 ```
 
-### iOS
+The tests cover the NEWS2 bands at every edge, the wire validation, the FHIR
+bundle, the Medplum client (against recorded response shapes, not a live
+server) and the clinic's and health worker's acceptance rules.
 
-For iOS, remember to install CocoaPods dependencies (this only needs to be run on first clone or after updating native deps).
+## Files
 
-The first time you create a new project, run the Ruby bundler to install CocoaPods itself:
+| File | What it does |
+| --- | --- |
+| `src/domain/news2.ts` | The NEWS2 chart and what each risk level means for a health worker |
+| `src/domain/visit.ts` | Visit records, mesh message validation, the synthetic roster |
+| `src/domain/fhir.ts` | Visit to FHIR R4 transaction; reading the outcome |
+| `src/services/medplum.ts` | Client-credentials sign-in and the visit push |
+| `src/mesh.ts` | The SDK: start, QR enrollment, visits and receipts, relay log, sync loop |
+| `src/state.ts` | App state, its pure transitions, persistence |
+| `src/ui/` | Welcome, health worker, visit form and clinic screens |
 
-```sh
-bundle install
-```
+## Limits
 
-Then, and every time you update your native dependencies, run:
-
-```sh
-bundle exec pod install
-```
-
-For more information, please visit [CocoaPods Getting Started guide](https://guides.cocoapods.org/using/getting-started.html).
-
-```sh
-# Using npm
-npm run ios
-
-# OR using Yarn
-yarn ios
-```
-
-If everything is set up correctly, you should see your new app running in the Android Emulator, iOS Simulator, or your connected device.
-
-This is one way to run your app — you can also build it directly from Android Studio or Xcode.
-
-## Step 3: Modify your app
-
-Now that you have successfully run the app, let's make changes!
-
-Open `App.tsx` in your text editor of choice and make some changes. When you save, your app will automatically update and reflect these changes — this is powered by [Fast Refresh](https://reactnative.dev/docs/fast-refresh).
-
-When you want to forcefully reload, for example to reset the state of your app, you can perform a full reload:
-
-- **Android**: Press the <kbd>R</kbd> key twice or select **"Reload"** from the **Dev Menu**, accessed via <kbd>Ctrl</kbd> + <kbd>M</kbd> (Windows/Linux) or <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (macOS).
-- **iOS**: Press <kbd>R</kbd> in iOS Simulator.
-
-## Congratulations! :tada:
-
-You've successfully run and modified your React Native App. :partying_face:
-
-### Now what?
-
-- If you want to add this new React Native code to an existing application, check out the [Integration guide](https://reactnative.dev/docs/integration-with-existing-apps).
-- If you're curious to learn more about React Native, check out the [docs](https://reactnative.dev/docs/getting-started).
-
-# Troubleshooting
-
-If you're having issues getting the above steps to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
-
-# Learn More
-
-To learn more about React Native, take a look at the following resources:
-
-- [React Native Website](https://reactnative.dev) - learn more about React Native.
-- [Getting Started](https://reactnative.dev/docs/environment-setup) - an **overview** of React Native and how setup your environment.
-- [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
-- [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
-- [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
+- Not yet run on phones or against a live Medplum project.
+- NEWS2 is validated for adults, not for children or pregnancy. The roster is
+  adults only.
+- Visit ids come from `Math.random`, which is fine for a demo but not for
+  identifiers that must never collide.
+- The clinic accepts enrollment from anyone in Bluetooth range who scanned the
+  code, after a tap. A real deployment would check who is enrolling.
+- Records are kept in AsyncStorage on the phone, unencrypted at rest. The
+  SDK's own store (keys, sessions, queued messages) is protected; the app's
+  copy of a visit is not.
+- Mesh frames are encrypted, but their sender and recipient addresses are
+  visible to every relay, as the *Carried for others* card shows.

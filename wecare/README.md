@@ -1,4 +1,4 @@
-<img src="ios/WeCare/Images.xcassets/AppIcon.appiconset/icon-1024.png" alt="WeCare app icon" width="128">
+<p align="center"><img src="ios/WeCare/Images.xcassets/AppIcon.appiconset/icon-1024.png" alt="WeCare app icon" width="128"></p>
 
 # WeCare
 

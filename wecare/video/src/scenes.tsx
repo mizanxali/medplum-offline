@@ -106,7 +106,7 @@ const T_RIGHT: Place = [560, TY, TRIO];
 export const LEAD = 4.8;
 /** Where each beat's own timeline picks up (its first 0.6 s was the old title landing). */
 const ACTION_FROM = 0.6;
-/** Every beat runs LEAD − ACTION_FROM longer than its own timeline. */
+/** Every beat runs LEAD minus ACTION_FROM longer than its own timeline. */
 export const INTRO_EXTRA = LEAD - ACTION_FROM;
 
 type Side = "L" | "R";

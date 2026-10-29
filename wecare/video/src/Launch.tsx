@@ -17,7 +17,7 @@ const LENGTHS = {
   close: 7,
 };
 const ORDER = Object.keys(LENGTHS) as (keyof typeof LENGTHS)[];
-/** Start of each beat: the cold open runs 0–4 s, then the beats follow one another. */
+/** Start of each beat: the cold open runs from 0 to 4 s, then the beats follow one another. */
 const START = Object.fromEntries(ORDER.map((b, i) => [b, 4 + ORDER.slice(0, i).reduce((t, x) => t + LENGTHS[x], 0)])) as Record<keyof typeof LENGTHS, number>;
 export const TOTAL = START.close + LENGTHS.close;
 

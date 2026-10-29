@@ -12,8 +12,8 @@ This describes the video as built in `src/` (composition `Launch`). Each feature
 
 ### The repeating feature beat
 
-1. **Intro (0–4.8 s).** The phone glides from the centre to one side (0.9 s) and settles at 0.92×. The title (Neuton Bold, 78 px) and a two- or three-sentence description (Host Grotesk, 34 px, muted ink) rise in on the other side (0.35–1.25 s). Sides alternate: phone left for features 1, 3, 5 and 7, right for 2, 4 and 6.
-2. **Hand-over (3.9–4.8 s).** The text slides out toward its own edge, and the phone glides back to the centre (or to its place in a split) as the beat's own timeline starts.
+1. **Intro (0 to 4.8 s).** The phone glides from the centre to one side (0.9 s) and settles at 0.92×. The title (Neuton Bold, 78 px) and a two- or three-sentence description (Host Grotesk, 34 px, muted ink) rise in on the other side (0.35 to 1.25 s). Sides alternate: phone left for features 1, 3, 5 and 7, right for 2, 4 and 6.
+2. **Hand-over (3.9 to 4.8 s).** The text slides out toward its own edge, and the phone glides back to the centre (or to its place in a split) as the beat's own timeline starts.
 3. **The feature plays out**, with the camera easing in on each action and a hold after every change so the screen can be read.
 4. **The end.** The camera eases back out to the centred phone, ready for the next intro to carry it to the side.
 
@@ -21,7 +21,7 @@ In split-screen and three-phone beats, the intro carries the main phone (Ada's, 
 
 ---
 
-## 0:00–0:04 · Cold open
+## 0:00 to 0:04 · Cold open
 
 **Screen:** the pastel wallpaper, with no phone yet. Two quiet lines rise in slowly (0.9 s each), centred a little above the middle:
 
@@ -30,7 +30,7 @@ In split-screen and three-phone beats, the intro carries the main phone (Ada's, 
 
 At 3.1 s both lines drift up a little and fade out by 3.6 s. The phone starts rising 0.4 s later.
 
-## 0:04–0:07 · Phone enters
+## 0:04 to 0:07 · Phone enters
 
 The phone rises from below the frame and settles softly, with no overshoot (0.9 s). It's open on **Riverside Clinic**, the hub's busiest screen. The status line reads **Mesh on · 2 nearby · no internet needed** with a green dot. Under **Visits received (3)**, three visit cards are sorted sickest first: Samuel Otieno **NEWS2 5 · Medium**, Peter Achieng **NEWS2 3 · Low-medium**, Grace Mwangi **NEWS2 0 · Low**. The camera eases in from 0.94× to 1×.
 
@@ -38,27 +38,27 @@ The phone rises from below the frame and settles softly, with no overshoot (0.9 
 
 ---
 
-## 0:07–0:22 · 1. Set up a phone (15.2 s)
+## 0:07 to 0:22 · 1. Set up a phone (15.2 s)
 
-**Phone:** the **WeCare** welcome screen (the clinic screen fades through to it as the phone settles, 2.3–2.95 s into its entrance): "Home visits that reach the clinic with no signal. Phones pass sealed records to one another over Bluetooth until one arrives." Under **This phone is for**, the **Health worker** card is selected (maroon border, check).
+**Phone:** the **WeCare** welcome screen (the clinic screen fades through to it as the phone settles, 2.3 to 2.95 s into its entrance): "Home visits that reach the clinic with no signal. Phones pass sealed records to one another over Bluetooth until one arrives." Under **This phone is for**, the **Health worker** card is selected (maroon border, check).
 1. At 1.8 the dot taps **Clinic hub**. The border and check move, and the Name placeholder changes to "Clinic name, for example Riverside Clinic".
 2. At 3.0 it taps **Health worker** again, and the placeholder reads "Your name, for example Ada".
 3. At 4.2 it taps the **Name** field. The keyboard comes up and "Ada" types in from 4.7 (0.13 s per character), with the camera pushing in to 2×.
 4. The keyboard drops (6.2), and **Start** is tapped at 6.8.
-5. The welcome screen fades through to Ada's home (6.95–7.6), while the camera glides up to the status line: the header **Ada** and **Mesh on · 2 nearby · no internet needed** with a green dot (punch-in on the status line). The clinic card reads **No clinic yet**, "Scan the clinic's code while you are close to its phone.", over a **Scan clinic code** button.
+5. The welcome screen fades through to Ada's home (6.95 to 7.6), while the camera glides up to the status line: the header **Ada** and **Mesh on · 2 nearby · no internet needed** with a green dot (punch-in on the status line). The clinic card reads **No clinic yet**, "Scan the clinic's code while you are close to its phone.", over a **Scan clinic code** button.
 
 **Intro:** phone on the left, with the text:
 
 > One app, two jobs: the health worker's phone or the clinic's hub. No account and no sign-up, and the mesh starts with no internet.
 
-## 0:22–0:40 · 2. Enroll with a scan (18.2 s)
+## 0:22 to 0:40 · 2. Enroll with a scan (18.2 s)
 
 **Split:** Ada's phone sits on the right (0.95×), and the Riverside Clinic phone glides in from the left, open on **Health workers (0)** with **Hide code** and the QR card: "Scan this with WeCare on the health worker's phone, close by. It carries this clinic's key, not a password."
-1. Right: at 1.6 Ada taps **Scan clinic code**. The scanner rises over Ada's home as a full-screen sheet (1.7–2.3): a dark camera view with a white rounded square guide, the title **Scan the clinic's code**, and a **Cancel** pill at the bottom. A blurred QR drifts into the square.
-2. Right: at 3.0 the square flashes and the scanner sheet sinks away (3.1–3.65). The clinic card now reads **Riverside Clinic**, "Waiting for the clinic to accept. Stay close to the clinic phone."
+1. Right: at 1.6 Ada taps **Scan clinic code**. The scanner rises over Ada's home as a full-screen sheet (1.7 to 2.3): a dark camera view with a white rounded square guide, the title **Scan the clinic's code**, and a **Cancel** pill at the bottom. A blurred QR drifts into the square.
+2. Right: at 3.0 the square flashes and the scanner sheet sinks away (3.1 to 3.65). The clinic card now reads **Riverside Clinic**, "Waiting for the clinic to accept. Stay close to the clinic phone."
 3. Left: at 4.6 the request card drops in at the top with a maroon border: **Ada would like to enroll**, `off1q964…4trw`, with **Enroll** and **Decline** buttons. The camera punches in on it.
 4. Left: at 6.8 the dot taps **Enroll**. The card leaves, and **Health workers (1)** lists **Ada** `off1q964…4trw`.
-5. Right: at 7.1 **Enrolled. Visits are sealed for this clinic alone.** ticks in, in green with a check. The camera punches in on it (9.0–12.5).
+5. Right: at 7.1 **Enrolled. Visits are sealed for this clinic alone.** ticks in, in green with a check. The camera punches in on it (9.0 to 12.5).
 
 **Intro:** phone on the right, with the text:
 
@@ -66,42 +66,42 @@ The phone rises from below the frame and settles softly, with no overshoot (0.9 
 
 The Riverside Clinic phone glides out left at 13.3, and Ada's phone moves back to the centre.
 
-## 0:40–0:57 · 3. Record the visit (17.2 s)
+## 0:40 to 0:57 · 3. Record the visit (17.2 s)
 
-**Phone:** Ada's home. At 1.6 the dot taps **New visit**, and the **New visit** form pushes in from the right (1.7–2.25). The score banner stays pinned at the top: **0**, **Routine follow-up**, "NEWS2, low risk. Scored on this phone, for adults." on soft green.
+**Phone:** Ada's home. At 1.6 the dot taps **New visit**, and the **New visit** form pushes in from the right (1.7 to 2.25). The score banner stays pinned at the top: **0**, **Routine follow-up**, "NEWS2, low risk. Scored on this phone, for adults." on soft green.
 1. Under **Patient**, the roster chips wrap: Amina Okello, Joseph Okello (both Hillside 4), Grace Mwangi, Peter Achieng, Ruth Njeri, Samuel Otieno. At 2.8 the dot taps **Ruth Njeri**: maroon fill and a check.
 2. At 4.4 the form scrolls to **Vitals**, with each row's icon, label, value and **−**/**+** steppers: Breathing 16 /min, SpO₂ 97 %, Systolic BP 122 mmHg, Pulse 76 /min, Temperature 36.8 °C, all reading **In range**. Below them is **On supplemental oxygen**, "Room air", with its switch.
 3. From 5.4 the dot presses Breathing **+** five times, 0.4 s apart. The value climbs to 21, the subline turns orange, **+2 to score**, and the banner ticks to **2**.
 4. From 7.8 it presses SpO₂ **−** three times. The value falls to 94, **+1 to score**, and the banner ticks to **3**, still green.
-5. Hold on the vitals card to the end (10.0–12.5), with the camera on the orange sublines.
+5. Hold on the vitals card to the end (10.0 to 12.5), with the camera on the orange sublines.
 
 **Intro:** phone on the left, with the text:
 
 > Pick who you're with, then step each vital in as you measure it. No typing on a doorstep, and every reading shows what it adds to the score.
 
-## 0:57–1:13 · 4. The score, on the spot (16.2 s)
+## 0:57 to 1:13 · 4. The score, on the spot (16.2 s)
 
 **Phone:** the same form, with the camera on the score banner.
 1. At 1.4 the dot taps **New confusion** under **Alertness**. The pill fills maroon, and the banner jumps to **6**: **Urgent referral** on orange, "NEWS2, medium risk."
 2. At 3.6 the form scrolls up and the dot taps the **Deteriorating** preset beside **Vitals**. Every row jumps: Breathing 27, SpO₂ 90, Systolic BP 96, Pulse 124 and Temperature 39.4, each with an orange **+3**/**+2 to score**. The banner counts up to **15** and turns red: **Emergency transfer**, "NEWS2, high risk. Scored on this phone, for adults." The 15 swells gently as it lands.
 
-**Hero cutaway (6.4–8.6):** a pastel veil over the phone. The four bands pop in, stacked, one after another: **Routine follow-up** (green), **Refer today** (amber), **Urgent referral** (orange), **Emergency transfer** (red, biggest, with a glow).
+**Hero cutaway (6.4 to 8.6):** a pastel veil over the phone. The four bands pop in, stacked, one after another: **Routine follow-up** (green), **Refer today** (amber), **Urgent referral** (orange), **Emergency transfer** (red, biggest, with a glow).
 
 3. Back on the form, scrolled to the bottom (8.8): **Save visit for Ruth** and "Saved on this phone first, then carried to the clinic sealed, through any phones in between." The camera moves down so the button sits above the band. The dot taps Save at 10.0.
-4. The form slides away to the right, back to Ada's home (10.15–10.7). Ruth Njeri's visit card sits under **Today's visits (1)**: "Female, 80 · Well Corner 7", **NEWS2 15 · High**, the six-cell vitals grid, then **On this phone, finding a route** and **Not in EHR yet**.
+4. The form slides away to the right, back to Ada's home (10.15 to 10.7). Ruth Njeri's visit card sits under **Today's visits (1)**: "Female, 80 · Well Corner 7", **NEWS2 15 · High**, the six-cell vitals grid, then **On this phone, finding a route** and **Not in EHR yet**.
 
 **Intro:** phone on the right, with the text:
 
 > NEWS2, the early-warning score used across the NHS, worked out on the phone. One clear next step, from routine follow-up to emergency transfer.
 
-## 1:13–1:34 · 5. Carried by the next phone (20.2 s)
+## 1:13 to 1:34 · 5. Carried by the next phone (20.2 s)
 
 **Trio:** Ada's phone sits on the left at 0.75×. At 0.7 the Riverside Clinic phone glides in on the right at the same size, open on **Visits received (3)**. A faint dashed circle around each phone shows its Bluetooth reach. Ada's circle and the clinic's don't meet.
 1. Left: Ada's card shows **On this phone, finding a route**, its clock icon pulsing.
 2. Middle: at 2.2 **Ben**'s phone rises into the gap, open on **Carried for others**: **0** sealed records passed along for others. Its reach circle overlaps both of the others.
-3. At 3.6 a small maroon tile with a lock leaves Ada's phone and arcs into Ben's. At 4.2 Ben's card ticks to **1 sealed record passed along for others**, "Encrypted for their recipient. Unreadable here." with the row `Ada → Riverside Clinic 10:42`. The camera punches in on Ben's card (2×, 4.4–7.0).
+3. At 3.6 a small maroon tile with a lock leaves Ada's phone and arcs into Ben's. At 4.2 Ben's card ticks to **1 sealed record passed along for others**, "Encrypted for their recipient. Unreadable here." with the row `Ada → Riverside Clinic 10:42`. The camera punches in on Ben's card (2×, 4.4 to 7.0).
 4. At 7.4 the tile arcs on from Ben's phone into the clinic's. At 8.0 Ruth Njeri's card drops in at the top of **Visits received (4)**, above Samuel, with **NEWS2 15 · High** and the footer "Ada, via 1 other phone, 10:42".
-5. At 9.6 a smaller tile, the receipt, travels back: clinic, then Ben, then Ada. At 10.6 Ada's pill flips to **At the clinic**, in green with a check. The camera punches in on it (11.0–14.5).
+5. At 9.6 a smaller tile, the receipt, travels back: clinic, then Ben, then Ada. At 10.6 Ada's pill flips to **At the clinic**, in green with a check. The camera punches in on it (11.0 to 14.5).
 
 **Intro:** phone on the left, with the text:
 
@@ -109,7 +109,7 @@ The Riverside Clinic phone glides out left at 13.3, and Ada's phone moves back t
 
 At 15.0 Ben's and Ada's phones slide out, and the clinic phone grows to the centre.
 
-## 1:34–1:49 · 6. Sickest first (15.2 s)
+## 1:34 to 1:49 · 6. Sickest first (15.2 s)
 
 **Phone:** **Riverside Clinic**, **Visits received (4)**: Ruth Njeri **NEWS2 15 · High** on top, then Samuel Otieno **NEWS2 5 · Medium**, Peter Achieng **NEWS2 3 · Low-medium** and Grace Mwangi **NEWS2 0 · Low**.
 1. At 1.8 another visit lands: Joseph Okello, **NEWS2 6 · Medium**, "Ben, direct". It slots in below Ruth instead of at the top, and the cards below slide down.
@@ -120,13 +120,13 @@ At 15.0 Ben's and Ada's phones slide out, and the clinic phone grows to the cent
 
 > Every visit lands on the clinic's list by risk, not by time. The clinic re-scores each one itself, and only takes visits from phones it enrolled.
 
-## 1:49–2:08 · 7. Into the real EHR (19.2 s)
+## 1:49 to 2:08 · 7. Into the real EHR (19.2 s)
 
 **Split:** the clinic phone sits on the left (0.95×), and Ada's phone glides in on the right at 0.6.
 1. Left: the clinic's screen scrolls to **Electronic health record**: **5 visits waiting for the EHR**, "Sends on its own once this phone is online. Copies the EHR already has are refused there." and a **Send to EHR now** button. At 1.6 a Wi-Fi icon appears in its status bar.
 2. Left: at 2.6 **Medplum: 5 added** ticks in, in green, and **Everything is in the EHR** replaces the count. Scrolling up, each visit's **Not in EHR yet** pill flips to **In EHR**, top to bottom, 0.15 s apart.
 
-**Hero cutaway (5.4–8.4):** a pastel veil with an EHR record card in Medplum's style: **Ruth Njeri**, *Encounter · home health · Ada (community health worker)*. Under it, a **Patient**, an **Encounter** and **8 Observations** stack in one by one: Respiratory rate 27 /min, Oxygen saturation 90 %, Systolic blood pressure 96 mmHg, Heart rate 124 /min, Body temperature 39.4 °C, On supplemental oxygen, Level of consciousness (ACVPU) C, NEWS2 total score 15. A small line underneath reads **FHIR R4 · Medplum**.
+**Hero cutaway (5.4 to 8.4):** a pastel veil with an EHR record card in Medplum's style: **Ruth Njeri**, *Encounter · home health · Ada (community health worker)*. Under it, a **Patient**, an **Encounter** and **8 Observations** stack in one by one: Respiratory rate 27 /min, Oxygen saturation 90 %, Systolic blood pressure 96 mmHg, Heart rate 124 /min, Body temperature 39.4 °C, On supplemental oxygen, Level of consciousness (ACVPU) C, NEWS2 total score 15. A small line underneath reads **FHIR R4 · Medplum**.
 
 3. Right: at 9.0 Ada's phone gets Wi-Fi too. Ruth's card pill flips from **Not in EHR yet** to **In EHR, already there**, and the camera punches in on it.
 4. Left: the clinic list holds **one** Ruth Njeri visit throughout.
@@ -137,11 +137,11 @@ At 15.0 Ben's and Ada's phones slide out, and the clinic phone grows to the cent
 
 ---
 
-## 2:08–2:09 · Exit
+## 2:08 to 2:09 · Exit
 
 Both phones sink a little (260 px) and fade out over 1 s, Only the wallpaper remains.
 
-## 2:09–2:16 · Close
+## 2:09 to 2:16 · Close
 
 The text starts 0.4 s after the phones have gone. Every phrase rises in on its own, slowly, centred a little above the middle.
 1. **Every visit** (0.3) · **finds its way** (0.95) · **to the clinic.** (1.6, in maroon). Neuton Bold, 88 px, on one line.

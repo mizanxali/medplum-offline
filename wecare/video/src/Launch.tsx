@@ -1,11 +1,10 @@
 import { AbsoluteFill, Sequence, Track, useVideoConfig } from "remotion";
-import { CarryBeat, Close, ColdOpen, EhrBeat, EnrollBeat, Exit, Featured, INTRO_EXTRA, PhoneEnter, RecordBeat, ScoreBeat, SetupBeat, SickestBeat } from "./scenes";
+import { CarryBeat, Close, EhrBeat, EnrollBeat, Exit, Featured, INTRO_EXTRA, RecordBeat, ScoreBeat, SetupBeat, SickestBeat } from "./scenes";
 import { Drift, Wallpaper } from "./type";
 
 // Beat lengths in seconds. Each feature is its own timeline plus the side-by-side intro.
 const X = INTRO_EXTRA;
 const LENGTHS = {
-  enter: 3,
   setup: 11 + X,
   enroll: 14 + X,
   record: 13 + X,
@@ -14,11 +13,11 @@ const LENGTHS = {
   sickest: 11 + X,
   ehr: 15 + X,
   exit: 1.2,
-  close: 7,
+  close: 8.6,
 };
 const ORDER = Object.keys(LENGTHS) as (keyof typeof LENGTHS)[];
-/** Start of each beat: the cold open runs from 0 to 4 s, then the beats follow one another. */
-const START = Object.fromEntries(ORDER.map((b, i) => [b, 4 + ORDER.slice(0, i).reduce((t, x) => t + LENGTHS[x], 0)])) as Record<keyof typeof LENGTHS, number>;
+/** Start of each beat: the video opens on the first feature, and the beats follow one another. */
+const START = Object.fromEntries(ORDER.map((b, i) => [b, ORDER.slice(0, i).reduce((t, x) => t + LENGTHS[x], 0)])) as Record<keyof typeof LENGTHS, number>;
 export const TOTAL = START.close + LENGTHS.close;
 
 // The beats' own scene objects: the main phone's place when each beat's timeline starts.
@@ -34,9 +33,6 @@ export const Launch = () => {
       <Wallpaper />
       <Drift>
         <Track name="Scenes">
-          <Sequence name="Phone enters" {...at("enter")}>
-            <PhoneEnter />
-          </Sequence>
           <Sequence name="1 · Set up" {...at("setup")}>
             <Featured side="L" title="Set up a phone" body="One app, two jobs: the health worker's phone or the clinic's hub. No account and no sign-up, and the mesh starts with no internet.">
               <SetupBeat />
@@ -78,9 +74,6 @@ export const Launch = () => {
         </Track>
       </Drift>
       <Track name="Type">
-        <Sequence name="Cold open" durationInFrames={4 * fps}>
-          <ColdOpen />
-        </Sequence>
         <Sequence name="Close" {...at("close")}>
           <Close />
         </Sequence>

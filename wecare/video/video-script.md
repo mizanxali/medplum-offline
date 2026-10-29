@@ -2,8 +2,8 @@
 
 This describes the video as built in `src/` (composition `Launch`). Each feature opens with a 4.8 s side-by-side intro; times inside a beat are seconds on the beat's own timeline, which picks up 4.2 s into the beat (at its 0.6 s mark) as the intro hands over.
 
-**Vibe:** calm and cozy healthcare, not an upbeat launch. Soft light, slow eases, silence, a human opening.
-**Length:** 2:17 (136.6 s). **Format:** 16:9, 1920×1080, 60 fps.
+**Vibe:** calm and cozy healthcare, not an upbeat launch. Soft light, slow eases, silence.
+**Length:** 2:11 (131.2 s). The video opens straight on the first feature: no cold open and no phone entrance. **Format:** 16:9, 1920×1080, 60 fps.
 **Sound:** none. The video is silent and made to be watched muted: the side text tells the story.
 **Look:** mock UI rebuilt from the app's own tokens, fonts and icons (`src/ui/kit.tsx`), not screen-captured. Pastel sky-blue screens (`#E1EFF4`), one maroon accent (`#6E1F30`), and green, amber, orange and red used only for state and risk. Titles in Neuton, everything else in Host Grotesk, Lucide icons at stroke 1.75. Black phone frames with soft shadows sit on a light, slow-moving wallpaper made from the app's own sky blue, with a warm blush and cream. Text uses the app's ink: titles in Neuton, descriptions in Host Grotesk. No subtitles and no overlays on the phone.
 **Touch:** a soft, ink-tinted touch dot moves on eased paths. Each tap presses the dot and throws a ripple.
@@ -21,26 +21,9 @@ In split-screen and three-phone beats, the intro carries the main phone (Ada's, 
 
 ---
 
-## 0:00 to 0:04 · Cold open
+## 0:00 to 0:15 · 1. Set up a phone (15.2 s)
 
-**Screen:** the pastel wallpaper, with no phone yet. Two quiet lines rise in slowly (0.9 s each), centred a little above the middle:
-
-> **Ruth lives an hour from the nearest clinic.** (0.3, Neuton Bold, 84 px, ink)
-> There's no signal at the door. (1.6, Neuton, 60 px, muted ink)
-
-At 3.1 s both lines drift up a little and fade out by 3.6 s. The phone starts rising 0.4 s later.
-
-## 0:04 to 0:07 · Phone enters
-
-The phone rises from below the frame and settles softly, with no overshoot (0.9 s). It's open on **Riverside Clinic**, the hub's busiest screen. The status line reads **Mesh on · 2 nearby · no internet needed** with a green dot. Under **Visits received (3)**, three visit cards are sorted sickest first: Samuel Otieno **NEWS2 5 · Medium**, Peter Achieng **NEWS2 3 · Low-medium**, Grace Mwangi **NEWS2 0 · Low**. The camera eases in from 0.94× to 1×.
-
-
-
----
-
-## 0:07 to 0:22 · 1. Set up a phone (15.2 s)
-
-**Phone:** the **WeCare** welcome screen (the clinic screen fades through to it as the phone settles, 2.3 to 2.95 s into its entrance): "Home visits that reach the clinic with no signal. Phones pass sealed records to one another over Bluetooth until one arrives." Under **This phone is for**, the **Health worker** card is selected (maroon border, check).
+**Phone:** the first frame of the video: the **WeCare** welcome screen on the centred phone, "Home visits that reach the clinic with no signal. Phones pass sealed records to one another over Bluetooth until one arrives." Under **This phone is for**, the **Health worker** card is selected (maroon border, check).
 1. At 1.8 the dot taps **Clinic hub**. The border and check move, and the Name placeholder changes to "Clinic name, for example Riverside Clinic".
 2. At 3.0 it taps **Health worker** again, and the placeholder reads "Your name, for example Ada".
 3. At 4.2 it taps the **Name** field. The keyboard comes up and "Ada" types in from 4.7 (0.13 s per character), with the camera pushing in to 2×.
@@ -51,7 +34,7 @@ The phone rises from below the frame and settles softly, with no overshoot (0.9 
 
 > One app, two jobs: the health worker's phone or the clinic's hub. No account and no sign-up, and the mesh starts with no internet.
 
-## 0:22 to 0:40 · 2. Enroll with a scan (18.2 s)
+## 0:15 to 0:33 · 2. Enroll with a scan (18.2 s)
 
 **Split:** Ada's phone sits on the right (0.95×), and the Riverside Clinic phone glides in from the left, open on **Health workers (0)** with **Hide code** and the QR card: "Scan this with WeCare on the health worker's phone, close by. It carries this clinic's key, not a password."
 1. Right: at 1.6 Ada taps **Scan clinic code**. The scanner rises over Ada's home as a full-screen sheet (1.7 to 2.3): a dark camera view with a white rounded square guide, the title **Scan the clinic's code**, and a **Cancel** pill at the bottom. A blurred QR drifts into the square.
@@ -66,7 +49,7 @@ The phone rises from below the frame and settles softly, with no overshoot (0.9 
 
 The Riverside Clinic phone glides out left at 13.3, and Ada's phone moves back to the centre.
 
-## 0:40 to 0:57 · 3. Record the visit (17.2 s)
+## 0:33 to 0:50 · 3. Record the visit (17.2 s)
 
 **Phone:** Ada's home. At 1.6 the dot taps **New visit**, and the **New visit** form pushes in from the right (1.7 to 2.25). The score banner stays pinned at the top: **0**, **Routine follow-up**, "NEWS2, low risk. Scored on this phone, for adults." on soft green.
 1. Under **Patient**, the roster chips wrap: Amina Okello, Joseph Okello (both Hillside 4), Grace Mwangi, Peter Achieng, Ruth Njeri, Samuel Otieno. At 2.8 the dot taps **Ruth Njeri**: maroon fill and a check.
@@ -79,7 +62,7 @@ The Riverside Clinic phone glides out left at 13.3, and Ada's phone moves back t
 
 > Pick who you're with, then step each vital in as you measure it. No typing on a doorstep, and every reading shows what it adds to the score.
 
-## 0:57 to 1:13 · 4. The score, on the spot (16.2 s)
+## 0:50 to 1:06 · 4. The score, on the spot (16.2 s)
 
 **Phone:** the same form, with the camera on the score banner.
 1. At 1.4 the dot taps **New confusion** under **Alertness**. The pill fills maroon, and the banner jumps to **6**: **Urgent referral** on orange, "NEWS2, medium risk."
@@ -94,7 +77,7 @@ The Riverside Clinic phone glides out left at 13.3, and Ada's phone moves back t
 
 > NEWS2, the early-warning score used across the NHS, worked out on the phone. One clear next step, from routine follow-up to emergency transfer.
 
-## 1:13 to 1:34 · 5. Carried by the next phone (20.2 s)
+## 1:06 to 1:27 · 5. Carried by the next phone (20.2 s)
 
 **Trio:** Ada's phone sits on the left at 0.75×. At 0.7 the Riverside Clinic phone glides in on the right at the same size, open on **Visits received (3)**. A faint dashed circle around each phone shows its Bluetooth reach. Ada's circle and the clinic's don't meet.
 1. Left: Ada's card shows **On this phone, finding a route**, its clock icon pulsing.
@@ -109,7 +92,7 @@ The Riverside Clinic phone glides out left at 13.3, and Ada's phone moves back t
 
 At 15.0 Ben's and Ada's phones slide out, and the clinic phone grows to the centre.
 
-## 1:34 to 1:49 · 6. Sickest first (15.2 s)
+## 1:27 to 1:42 · 6. Sickest first (15.2 s)
 
 **Phone:** **Riverside Clinic**, **Visits received (4)**: Ruth Njeri **NEWS2 15 · High** on top, then Samuel Otieno **NEWS2 5 · Medium**, Peter Achieng **NEWS2 3 · Low-medium** and Grace Mwangi **NEWS2 0 · Low**.
 1. At 1.8 another visit lands: Joseph Okello, **NEWS2 6 · Medium**, "Ben, direct". It slots in below Ruth instead of at the top, and the cards below slide down.
@@ -120,7 +103,7 @@ At 15.0 Ben's and Ada's phones slide out, and the clinic phone grows to the cent
 
 > Every visit lands on the clinic's list by risk, not by time. The clinic re-scores each one itself, and only takes visits from phones it enrolled.
 
-## 1:49 to 2:08 · 7. Into the real EHR (19.2 s)
+## 1:42 to 2:01 · 7. Into the real EHR (19.2 s)
 
 **Split:** the clinic phone sits on the left (0.95×), and Ada's phone glides in on the right at 0.6.
 1. Left: the clinic's screen scrolls to **Electronic health record**: **5 visits waiting for the EHR**, "Sends on its own once this phone is online. Copies the EHR already has are refused there." and a **Send to EHR now** button. At 1.6 a Wi-Fi icon appears in its status bar.
@@ -137,18 +120,19 @@ At 15.0 Ben's and Ada's phones slide out, and the clinic phone grows to the cent
 
 ---
 
-## 2:08 to 2:09 · Exit
+## 2:01 to 2:02 · Exit
 
 Both phones sink a little (260 px) and fade out over 1 s, Only the wallpaper remains.
 
-## 2:09 to 2:16 · Close
+## 2:02 to 2:11 · Close
 
 The text starts 0.4 s after the phones have gone. Every phrase rises in on its own, slowly, centred a little above the middle.
 1. **Every visit** (0.3) · **finds its way** (0.95) · **to the clinic.** (1.6, in maroon). Neuton Bold, 88 px, on one line.
-2. At 2.9 the line fades out. From 3.4 the WeCare mark settles in: the app icon (the maroon cross on a soft disc) beside **WeCare** in Neuton Bold, 132 px.
-3. **Built on Offline Protocol** (4.4) rises in underneath, Host Grotesk, 36 px, muted ink.
+2. At 2.9 **clinic.** rises away and **EHR.** rises into its place (2.9 to 3.8), and the line glides to stay centred as the word narrows: **Every visit finds its way to the EHR.**
+3. At 4.7 the line fades out. From 5.2 the WeCare mark settles in: the app icon (the maroon cross on a soft disc) beside **WeCare** in Neuton Bold, 132 px.
+4. **Built on Offline Protocol** (6.2) rises in underneath, Host Grotesk, 36 px, muted ink.
 
-From 6.0 everything fades back into the wallpaper.
+From 7.7 everything fades back into the wallpaper.
 
 ---
 

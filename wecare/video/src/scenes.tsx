@@ -1,6 +1,6 @@
 import { Lock, Waypoints } from "lucide-react";
-import type { ReactNode } from "react";
-import { AbsoluteFill, Easing, Freeze, interpolate, Sequence, useCurrentFrame, useVideoConfig } from "remotion";
+import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { AbsoluteFill, continueRender, delayRender, Easing, Freeze, interpolate, Sequence, useCurrentFrame, useVideoConfig } from "remotion";
 import { ACTION, ADA, BEN, DETERIORATING, EARLIER, JOSEPH_VISIT, news2, NORMAL, RUTH, RUTH_VISIT, sickestFirst, type VisitView, type Vitals } from "./data";
 import { ClinicScreen, ScannerScreen, VisitFormScreen, WelcomeScreen, WorkerHome, type Received } from "./screens";
 import { C, F, RISK } from "./theme";
@@ -182,39 +182,7 @@ const DETERIORATING_BTN = [325, 283] as const;
 const SAVE_SCROLL = 760;
 const SAVE_Y = 389;
 
-// ---------------------------------------------------------------- 0:00 cold open
-
 const serif = { fontFamily: F.title, color: C.ink, lineHeight: 1.15 };
-
-/** Two quiet lines that set the scene before the phone arrives. */
-export const ColdOpen = () => {
-  const { s } = useClock();
-  return (
-    <AbsoluteFill style={{ alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 26, opacity: 1 - k(s, 3.1, 3.6), translate: `0 ${-90 - k(s, 3.1, 3.6) * 20}px` }}>
-      <Fade s={s} at={0.3} style={{ ...serif, fontSize: 84 }}>
-        Ruth lives an hour from the nearest clinic.
-      </Fade>
-      <Fade s={s} at={1.6} style={{ ...serif, fontFamily: F.heading, fontSize: 60, color: C.muted }}>
-        There's no signal at the door.
-      </Fade>
-    </AbsoluteFill>
-  );
-};
-
-// ---------------------------------------------------------------- 0:04 phone enters
-
-const EARLIER_RECEIVED: Received[] = EARLIER.map((v) => ({ v }));
-
-export const PhoneEnter = () => {
-  const { s } = useClock();
-  return (
-    <Camera keys={[[0, 0.94, 0, 0], [3, 1, 0, 0]]}>
-      <Phone style={{ translate: `0 ${interpolate(s, [0, 0.9], [1100, 0], { ...clamp, easing: soft })}px` }}>
-        <Transition p={swap(s, 2.3, 2.95)} kind="fade" from={<ClinicScreen nearby={2} workers={[ADA.name, BEN.name]} received={EARLIER_RECEIVED} scroll={150} />} to={<WelcomeScreen role="chw" name="" />} />
-      </Phone>
-    </Camera>
-  );
-};
 
 // ---------------------------------------------------------------- 1 set up a phone
 
@@ -740,25 +708,59 @@ const AppMark = ({ size }: { size: number }) => (
   </div>
 );
 
+/** When "clinic." gives way to "EHR." in the closing line. */
+const SWAP = 2.9;
+const SWAP_WORDS = ["clinic.", "EHR."] as const;
+const closing = { ...serif, fontSize: 88 };
+
+/** The rendered widths of the two swapping words, measured once the fonts are in. */
+const useSwapWidths = () => {
+  const refs = useRef<(HTMLSpanElement | null)[]>([]);
+  const [widths, setWidths] = useState<number[] | null>(null);
+  const [handle] = useState(() => delayRender("measure the closing words"));
+  useLayoutEffect(() => {
+    document.fonts.ready.then(() => {
+      setWidths(refs.current.map((r) => r?.offsetWidth ?? 0));
+      continueRender(handle);
+    });
+  }, [handle]);
+  const probes = SWAP_WORDS.map((w, i) => (
+    <span key={w} ref={(el) => void (refs.current[i] = el)} style={{ ...closing, position: "absolute", visibility: "hidden", whiteSpace: "nowrap" }}>
+      {w}
+    </span>
+  ));
+  return { widths, probes };
+};
+
 /**
- * The closing line, one phrase at a time, then the WeCare mark and what it runs on.
- * Everything fades back into the wallpaper with the music.
+ * The closing line, one phrase at a time. Then "clinic." rises away and "EHR."
+ * rises into its place, and the line glides to stay centred. Then the WeCare mark
+ * and what it runs on, and everything fades back into the wallpaper.
  */
 export const Close = () => {
   const { s } = useClock();
-  const line = 1 - k(s, 2.9, 3.4);
-  const mark = k(s, 3.4, 4.3, soft);
+  const { widths, probes } = useSwapWidths();
+  const out = k(s, SWAP, SWAP + 0.45);
+  const into = k(s, SWAP + 0.3, SWAP + 0.9, soft);
+  const slot = widths ? interpolate(s, [SWAP, SWAP + 0.75], widths, { ...clamp, easing: ease }) : undefined;
+  const line = 1 - k(s, 4.7, 5.2);
+  const mark = k(s, 5.2, 6.1, soft);
   return (
-    <AbsoluteFill style={{ opacity: 1 - k(s, 6.0, 6.9), alignItems: "center", justifyContent: "center" }}>
+    <AbsoluteFill style={{ opacity: 1 - k(s, 7.7, 8.6), alignItems: "center", justifyContent: "center" }}>
+      {probes}
       <div style={{ position: "absolute", display: "flex", gap: 24, opacity: line, translate: `0 ${-60 - (1 - line) * 20}px` }}>
-        <Fade s={s} at={0.3} style={{ ...serif, fontSize: 88 }}>
+        <Fade s={s} at={0.3} style={closing}>
           Every visit
         </Fade>
-        <Fade s={s} at={0.95} style={{ ...serif, fontSize: 88 }}>
+        <Fade s={s} at={0.95} style={closing}>
           finds its way
         </Fade>
-        <Fade s={s} at={1.6} style={{ ...serif, fontSize: 88, color: C.accent }}>
-          to the clinic.
+        <Fade s={s} at={1.6} style={{ ...closing, color: C.accent, display: "inline-flex", gap: "0.25em" }}>
+          <span>to the</span>
+          <span style={{ position: "relative", display: "inline-block", width: slot, height: "1.15em" }}>
+            <span style={{ position: "absolute", left: 0, opacity: 1 - out, translate: `0 ${-out * 34}px`, filter: `blur(${out * 3}px)` }}>{SWAP_WORDS[0]}</span>
+            <span style={{ position: "absolute", left: 0, opacity: into, translate: `0 ${(1 - into) * 34}px`, filter: `blur(${(1 - into) * 3}px)` }}>{SWAP_WORDS[1]}</span>
+          </span>
         </Fade>
       </div>
       <div style={{ position: "absolute", display: "flex", flexDirection: "column", alignItems: "center", gap: 26, translate: "0 -70px" }}>
@@ -766,7 +768,7 @@ export const Close = () => {
           <AppMark size={128} />
           <span style={{ ...serif, fontSize: 132 }}>WeCare</span>
         </div>
-        <Fade s={s} at={4.4} style={{ fontFamily: F.body, fontSize: 36, color: C.muted }}>
+        <Fade s={s} at={6.2} style={{ fontFamily: F.body, fontSize: 36, color: C.muted }}>
           Built on Offline Protocol
         </Fade>
       </div>

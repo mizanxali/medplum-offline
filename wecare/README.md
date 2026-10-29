@@ -98,9 +98,27 @@ npm start
 npm run ios -- --device      # or: npm run android
 ```
 
+For a demo away from the laptop, install Release builds, which carry their own
+JavaScript:
+
+```sh
+# iPhone (pass your own team id)
+xcodebuild -workspace "$PWD/ios/CareRounds.xcworkspace" -scheme CareRounds \
+  -configuration Release -destination 'id=<UDID>' -derivedDataPath /tmp/cr-dd \
+  -allowProvisioningUpdates DEVELOPMENT_TEAM=<team id> build
+xcrun devicectl device install app --device <UDID> \
+  /tmp/cr-dd/Build/Products/Release-iphoneos/CareRounds.app
+# Android (signed with the debug key, so reinstalls keep app data)
+(cd android && ./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a)
+adb install -r android/app/build/outputs/apk/release/app-release.apk
+```
+
 Physical phones only: simulators have no Bluetooth peers. Each phone needs
 Bluetooth on; Android asks for Bluetooth and location access, and for the
-camera before scanning.
+camera before scanning. iOS asks for Bluetooth and local network access.
+
+Every SDK event is logged with the `[carerounds]` prefix, never with message
+content (`adb logcat ReactNativeJS:V '*:S'`; `idevicesyslog -p CareRounds`).
 
 ## Checks
 
@@ -126,8 +144,13 @@ server) and the clinic's and health worker's acceptance rules.
 
 ## Limits
 
-- Not yet run on phones. The Medplum sync is verified against a self-hosted
-  Medplum 5.2 (`medplum.live` test), not against a phone build.
+- Run on two phones (2026-10-29, iPhone 16 as clinic, Samsung M17 as health
+  worker): QR enrollment, a visit delivered directly in about two seconds,
+  NEWS2 recomputed at the clinic, the health worker's push *added* and the
+  clinic's *already in the EHR*, one Encounter in Medplum. The relay step
+  (*Carried for others*) needs a third phone and has not been run.
+- SDK 0.31 workarounds live in `src/mesh.ts`: the connection calls pass an
+  empty key package, because the iOS bridge rejects an omitted one.
 - NEWS2 is validated for adults, not for children or pregnancy. The roster is
   adults only.
 - Visit ids come from `Math.random`, which is fine for a demo but not for

@@ -80,7 +80,9 @@ unless its responsible app declares it, and from a terminal that app is the
 terminal. The first run asks for Bluetooth access. Put the Mac between the
 two phones, then carry A far enough from C that the clinic phone no longer
 appears as A's neighbor (a few rooms; Bluetooth reaches further than you
-expect).
+expect). If the log stops reporting neighbors coming and going while the
+phones move, the relay's Bluetooth has stalled: stop it and run the script
+again.
 
 ## Medplum setup
 
@@ -166,8 +168,12 @@ server) and the clinic's and health worker's acceptance rules.
 - Run on two phones (2026-10-29, iPhone 16 as clinic, Samsung M17 as health
   worker): QR enrollment, a visit delivered directly in about two seconds,
   NEWS2 recomputed at the clinic, the health worker's push *added* and the
-  clinic's *already in the EHR*, one Encounter in Medplum. The relay step
-  (*Carried for others*) needs a third phone and has not been run.
+  clinic's *already in the EHR*, one Encounter in Medplum. The relay hop
+  ran the same day with the Mac standing in for the third phone: the phones
+  a few rooms apart with the Mac between them, the visit arrived *via 1 other
+  phone*, and the Mac carried five sealed frames in both directions (the
+  visit, the receipt and their retransmissions). The phone version of the
+  *Carried for others* card has not been run.
 - SDK 0.31 workarounds live in `src/mesh.ts`: the connection calls pass an
   empty key package, because the iOS bridge rejects an omitted one.
 - NEWS2 is validated for adults, not for children or pregnancy. The roster is

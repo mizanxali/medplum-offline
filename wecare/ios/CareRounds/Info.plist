@@ -39,6 +39,8 @@
 	<string>CareRounds carries sealed visit records between nearby phones over Bluetooth, with no signal.</string>
 	<key>NSCameraUsageDescription</key>
 	<string>CareRounds scans the clinic's QR code to enroll this phone.</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>CareRounds sends visits to the clinic's EHR server on this Wi-Fi network.</string>
 	<key>RCTNewArchEnabled</key>
 	<true/>
 	<key>UIApplicationSceneManifest</key>

@@ -11,6 +11,8 @@
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" android:maxSdkVersion="30" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 
+    <!-- Cleartext is on in release too: the demo syncs to a self-hosted Medplum
+         over plain http on the local Wi-Fi (medplum/docker-compose.yml). -->
     <application
       android:name=".MainApplication"
       android:label="@string/app_name"
@@ -18,7 +20,7 @@
       android:roundIcon="@mipmap/ic_launcher_round"
       android:allowBackup="false"
       android:theme="@style/AppTheme"
-      android:usesCleartextTraffic="${usesCleartextTraffic}"
+      android:usesCleartextTraffic="true"
       android:supportsRtl="true">
       <activity
         android:name=".MainActivity"

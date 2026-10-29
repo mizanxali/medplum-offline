@@ -132,13 +132,12 @@ function Scanner({ onDone }: { onDone: () => void }) {
 
   return (
     <View style={{ flex: 1, backgroundColor: '#000' }}>
+      {/* No showFrame: its viewfinder is shaped for 1D barcodes, and camera-kit
+          drops any code not wholly inside it, so a QR on a phone never scans. */}
       <Camera
         style={{ flex: 1 }}
         cameraType={CameraType.Back}
         scanBarcode
-        showFrame
-        laserColor="#4ADE80"
-        frameColor="#FFFFFF"
         onReadCode={e => {
           if (busy.current) return;
           busy.current = true;

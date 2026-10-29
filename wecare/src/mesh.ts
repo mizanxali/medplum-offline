@@ -36,6 +36,11 @@ const CONFIG: ProtocolConfig = {
   encryption: { enabled: true, autoKeyExchange: true, storePending: true },
 };
 
+// SDK 0.31: the iOS bridge rejects an omitted keyPackage ("'keyPackage' must be
+// a byte list") because the TS layer forwards it as null; both bridges read an
+// empty list as "none". Without this every Enroll on an iPhone clinic fails.
+const NO_KEY_PACKAGE: number[] = [];
+
 let protocol: OfflineProtocol | null = null;
 let ticker: ReturnType<typeof setInterval> | null = null;
 let syncing = false;
@@ -108,7 +113,19 @@ export async function stop() {
 
 // --- events ---
 
+// Event trace for device runs: logcat tag ReactNativeJS, iOS syslog.
+const QUIET = new Set([
+  'network_metrics',
+  'dors_score_updated',
+  'convergence_diag',
+]);
+
 function onEvent(e: ProtocolEvent) {
+  if (!QUIET.has(e.type)) {
+    // Never the content: a visit carries patient data, and logs leave the app.
+    const meta = JSON.stringify({ ...e, content: undefined });
+    console.log('[carerounds]', e.type, meta.slice(0, 300));
+  }
   const s = getState();
   switch (e.type) {
     case 'neighbor_discovered':
@@ -192,6 +209,7 @@ function tick() {
         .sendConnectionRequest({
           recipient: s.clinic.address,
           senderName: s.name,
+          keyPackage: NO_KEY_PACKAGE,
         })
         .catch(e => console.warn('[carerounds] enroll failed', message(e)));
     }
@@ -245,7 +263,11 @@ export function accept(address: string) {
     s.workers.find(w => w.address === address);
   if (!peer || !protocol) return;
   protocol
-    .acceptConnectionRequest({ recipient: address, accepterName: s.name })
+    .acceptConnectionRequest({
+      recipient: address,
+      accepterName: s.name,
+      keyPackage: NO_KEY_PACKAGE,
+    })
     .catch(e => console.warn('[carerounds] accept failed', message(e)));
   setState(x => ({
     ...x,

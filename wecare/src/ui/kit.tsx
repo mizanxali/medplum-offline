@@ -18,10 +18,10 @@ import { useStore } from '../state';
 // Calm palette: pastel blue surfaces, one deep maroon accent, and state
 // colours kept for state alone (green means done, red means wrong or urgent).
 export const C = {
-  bg: '#85E5FF',
-  surface: '#F5FDFF',
-  sunken: '#E2F7FE',
-  line: '#B4E3F2',
+  bg: '#CDEFFB',
+  surface: '#F7FDFF',
+  sunken: '#E6F7FD',
+  line: '#BDE5F2',
   ink: '#1D2733',
   muted: '#3F5563',
   faint: '#5F7380',
@@ -293,7 +293,7 @@ export function RiskPill({ risk, total }: { risk: Risk; total: number }) {
 
 const soft: ViewStyle = Platform.select({
   ios: {
-    shadowColor: '#0B5F7A',
+    shadowColor: '#1F7C9C',
     shadowOpacity: 0.07,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 3 },

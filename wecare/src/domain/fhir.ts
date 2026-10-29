@@ -5,10 +5,10 @@ import { newId, type Visit } from './visit';
 // identifier, and every create is conditional on it, so the server, not the
 // phone, is what refuses a second copy of the same visit.
 export const SYSTEM = {
-  patient: 'urn:carerounds:patient',
-  visit: 'urn:carerounds:visit',
-  observation: 'urn:carerounds:observation',
-  code: 'urn:carerounds:code',
+  patient: 'urn:wecare:patient',
+  visit: 'urn:wecare:visit',
+  observation: 'urn:wecare:observation',
+  code: 'urn:wecare:code',
 };
 
 const LOINC = 'http://loinc.org';

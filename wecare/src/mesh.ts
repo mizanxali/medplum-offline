@@ -16,8 +16,8 @@ import {
   type Synced,
 } from './state';
 
-// The app's first name, kept in identifiers (this, the FHIR systems, the
-// bundle id, the storage key) so installed phones and EHR records carry over.
+// The app's first name, kept in identifiers (this, the bundle id, the storage
+// key) so installed phones keep their enrollment and visits.
 const APP_ID = 'carerounds';
 const INVITE_PREFIX = 'carerounds://enroll?c=';
 

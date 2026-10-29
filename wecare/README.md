@@ -10,8 +10,8 @@ Built on [`@offline-protocol/mesh-sdk`](https://www.npmjs.com/package/@offline-p
 React Native 0.88. Patients are synthetic; no real person is behind any record.
 
 The project and its identifiers (the Xcode target, the bundle id, the mesh app
-id, the `urn:carerounds:*` FHIR systems) keep the app's first name, CareRounds,
-so installed phones and existing EHR records carry over.
+id) keep the app's first name, CareRounds, so installed phones keep their
+enrollment and visits.
 
 ## What it shows
 
@@ -107,7 +107,7 @@ runs Medplum itself, from the images Medplum publishes.
    `MEDPLUM_LIVE=1 npx jest medplum.live` pushes a synthetic visit twice and
    expects *added*, then *duplicate*.
 5. In the web app, open **Encounter** and search by identifier
-   (`urn:carerounds:visit|<id>`), or open the patient to see the
+   (`urn:wecare:visit|<id>`), or open the patient to see the
    Observations on their timeline.
 
 For the demo, "the clinic has internet" means the clinic phone is on the same

@@ -65,16 +65,29 @@ says what is missing.
 
 ## Medplum setup
 
-1. Create a free project at [app.medplum.com](https://app.medplum.com).
-   Use it for synthetic data only.
-2. **Project Admin → Clients → New client**. Copy its ID and secret.
-3. `cp src/config.local.example.ts src/config.local.ts` and fill them in.
-   `config.local.ts` is gitignored. The secret is compiled into the app, so
-   this is a demo setup, not a deployment: a production gateway would hold the
-   credential server-side.
-4. In Medplum, open **Encounter** and search by identifier
+Hosted Medplum (app.medplum.com) no longer accepts new projects, so the demo
+runs Medplum itself, from the images Medplum publishes.
+
+1. Start it (Docker or OrbStack):
+   `docker compose -f medplum/docker-compose.yml up -d`.
+   The web app is at <http://localhost:3000>.
+2. In the web app, **Register**, create a project named *CareRounds*, then
+   **Project Admin → Clients → New client**. Copy its ID and secret.
+3. `cp src/config.local.example.ts src/config.local.ts` and fill them in, with
+   `baseUrl` set to `http://<this Mac's LAN IP>:8103/` (`ipconfig getifaddr en0`)
+   so phones on the same Wi-Fi reach it. `config.local.ts` is gitignored. The
+   secret is compiled into the app, so this is a demo setup, not a deployment:
+   a production gateway would hold the credential server-side.
+4. Check the round trip before using phones:
+   `MEDPLUM_LIVE=1 npx jest medplum.live` pushes a synthetic visit twice and
+   expects *added*, then *duplicate*.
+5. In the web app, open **Encounter** and search by identifier
    (`urn:carerounds:visit|<id>`), or open the patient to see the
    Observations on their timeline.
+
+For the demo, "the clinic has internet" means the clinic phone is on the same
+Wi-Fi as this Mac. Airplane mode cuts it off exactly as it would cut off the
+internet.
 
 ## Run
 
@@ -113,7 +126,8 @@ server) and the clinic's and health worker's acceptance rules.
 
 ## Limits
 
-- Not yet run on phones or against a live Medplum project.
+- Not yet run on phones. The Medplum sync is verified against a self-hosted
+  Medplum 5.2 (`medplum.live` test), not against a phone build.
 - NEWS2 is validated for adults, not for children or pregnancy. The roster is
   adults only.
 - Visit ids come from `Math.random`, which is fine for a demo but not for

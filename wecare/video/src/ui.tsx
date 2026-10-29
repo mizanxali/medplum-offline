@@ -1,7 +1,6 @@
-import { Audio } from "@remotion/media";
 import type { LucideIcon } from "lucide-react";
 import type { CSSProperties, ReactNode } from "react";
-import { interpolate, Sequence } from "remotion";
+import { interpolate } from "remotion";
 import type { Risk } from "../../src/domain/news2";
 import { C, F, RISK, T } from "./theme";
 
@@ -12,23 +11,6 @@ export const PHONE_W = SCREEN_W + BEZEL * 2;
 export const PHONE_H = SCREEN_H + BEZEL * 2;
 /** Top of the app header's content: the status bar inset plus the header's 12 px. */
 export const INSET = 59;
-
-export const SFX = {
-  tap: "https://remotion.media/mouse-click.wav",
-  whoosh: "https://remotion.media/whoosh.wav",
-  chime: "https://remotion.media/ding.wav",
-  toggle: "https://remotion.media/switch.wav",
-};
-
-/** Calm mix: every effect sits well under the music. */
-const SFX_LEVEL = 0.55;
-
-/** One sound effect starting at `at` (frames, relative to the parent sequence). */
-export const Sfx = ({ at, src, volume = 0.6 }: { at: number; src: string; volume?: number }) => (
-  <Sequence from={Math.round(at)} durationInFrames={90} layout="none">
-    <Audio src={src} volume={volume * SFX_LEVEL} />
-  </Sequence>
-);
 
 // ---------------------------------------------------------------- the app's kit, as HTML
 
@@ -279,7 +261,7 @@ export const Phone = ({ children, dim = 0, style }: { children: ReactNode; dim?:
 
 /**
  * A soft touch dot in screen points. `path` is [frame, x, y] keyframes (eased between),
- * `taps` are the frames where it presses (with a tap sound). Ink-tinted, since the app is light.
+ * `taps` are the frames where it presses. Ink-tinted, since the app is light.
  */
 export const TouchDot = ({ frame, path, taps, show }: { frame: number; path: [number, number, number][]; taps: number[]; show: [number, number] }) => {
   const fs = path.map((p) => p[0]);
@@ -291,9 +273,6 @@ export const TouchDot = ({ frame, path, taps, show }: { frame: number; path: [nu
   const opacity = interpolate(frame, [show[0], show[0] + 8, show[1] - 8, show[1]], [0, 1, 1, 0], { extrapolateLeft: "clamp", extrapolateRight: "clamp" });
   return (
     <>
-      {taps.map((t) => (
-        <Sfx key={t} at={t} src={SFX.tap} volume={0.5} />
-      ))}
       <div style={{ position: "absolute", left: x, top: y, opacity, pointerEvents: "none", zIndex: 10 }}>
         {ripple !== undefined && (
           <div

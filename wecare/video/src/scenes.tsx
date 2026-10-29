@@ -1,11 +1,11 @@
 import { Lock, Waypoints } from "lucide-react";
 import type { ReactNode } from "react";
-import { AbsoluteFill, Easing, interpolate, useCurrentFrame, useVideoConfig } from "remotion";
+import { AbsoluteFill, Easing, Freeze, interpolate, Sequence, useCurrentFrame, useVideoConfig } from "remotion";
 import { ACTION, ADA, BEN, DETERIORATING, EARLIER, JOSEPH_VISIT, news2, NORMAL, RUTH, RUTH_VISIT, sickestFirst, type VisitView, type Vitals } from "./data";
 import { ClinicScreen, ScannerScreen, VisitFormScreen, WelcomeScreen, WorkerHome, type Received } from "./screens";
 import { C, F, RISK } from "./theme";
-import { Fade, soft, TITLE_SETTLED } from "./type";
-import { Icon, Keyboard, Phone, SFX, Sfx, TouchDot } from "./ui";
+import { Fade, soft } from "./type";
+import { Icon, Keyboard, Phone, TouchDot } from "./ui";
 
 const clamp = { extrapolateLeft: "clamp", extrapolateRight: "clamp" } as const;
 const ease = Easing.bezier(0.65, 0, 0.35, 1);
@@ -21,14 +21,12 @@ const useClock = () => {
 /** 0 → 1 between `a` and `b` seconds. */
 const k = (s: number, a: number, b: number, easing = ease) => interpolate(s, [a, b], [0, 1], { ...clamp, easing });
 
-/** A pastel veil settles over the phone while the title lands, and lifts as it moves into the band. */
-const dim = (s: number) => interpolate(s, [0, 0.25, 0.85, TITLE_SETTLED], [0, 0.6, 0.6, 0], clamp);
 
 // ---------------------------------------------------------------- camera
 
 type Key = [sec: number, scale: number, tx: number, ty: number];
-/** Frame y (relative to centre) where the action sits: just above the caption band. */
-const ACTION_Y = -110;
+/** Frame y (relative to centre) where the action sits: a touch above the middle. */
+const ACTION_Y = -20;
 /** Calm framing: every punch-in goes a quarter less deep than the number asked for. */
 const CALM = 0.75;
 /** Camera that lands point (x, y), relative to the frame centre at scale 1, on the action spot. */
@@ -65,16 +63,6 @@ const typing = (text: string, s: number, start: number, per: number) => {
   const pressed = n > 0 && n <= text.length && s - (start + (n - 1) * per) < per * 0.7 ? text[n - 1] : undefined;
   return { value: s >= start ? text.slice(0, n) : "", pressed: s >= start ? pressed : undefined };
 };
-const KeyClicks = ({ text, start, per }: { text: string; start: number; per: number }) => {
-  const { fps } = useClock();
-  return (
-    <>
-      {[...text].map((_, i) => (
-        <Sfx key={i} at={(start + i * per) * fps} src={SFX.tap} volume={0.12 + ((i * 7) % 5) * 0.03} />
-      ))}
-    </>
-  );
-};
 
 const bump = (s: number, at: number) => interpolate(s - at, [0, 0.1, 0.35], [0, 1, 0], clamp);
 /** How many of `taps` (seconds) have happened by `s`. */
@@ -86,8 +74,8 @@ const held = (s: number, taps: number[]) => taps.some((t) => s >= t - 0.02 && s 
 
 type Place = [x: number, y: number, scale: number];
 
-const Placed = ({ at: [x, y, scale], dimmed = 0, children }: { at: Place; dimmed?: number; children: ReactNode }) => (
-  <Phone dim={dimmed} style={{ translate: `${x}px ${y}px`, scale: String(scale) }}>
+const Placed = ({ at: [x, y, scale], children }: { at: Place; children: ReactNode }) => (
+  <Phone style={{ translate: `${x}px ${y}px`, scale: String(scale) }}>
     {children}
   </Phone>
 );
@@ -95,17 +83,74 @@ const Placed = ({ at: [x, y, scale], dimmed = 0, children }: { at: Place; dimmed
 const lerp = (a: Place, b: Place, t: number): Place => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
 
 const CENTRE: Place = [0, 0, 1];
-const P = 0.9; // phone scale in a split
-const Y = -68; // split phones ride up above the band
+const P = 0.95; // phone scale in a split
+const Y = 0;
 const SPLIT = 250;
 const LEFT: Place = [-SPLIT, Y, P];
 const RIGHT: Place = [SPLIT, Y, P];
-const OFF_RIGHT: Place = [1300, Y, P];
-const TRIO = 0.72;
-const TY = -50;
+/** Far enough out that a phone stays hidden even while a feature intro scales the scene. */
+const OFF = 1800;
+const TRIO = 0.75;
+const TY = 0;
 const T_LEFT: Place = [-560, TY, TRIO];
 const T_MID: Place = [0, TY, TRIO];
 const T_RIGHT: Place = [560, TY, TRIO];
+
+// ---------------------------------------------------------------- feature intro
+
+/** How long a feature's intro runs before its own timeline takes over. */
+export const LEAD = 4.8;
+/** Where each beat's own timeline picks up (its first 0.6 s was the old title landing). */
+const ACTION_FROM = 0.6;
+/** Every beat runs LEAD − ACTION_FROM longer than its own timeline. */
+export const INTRO_EXTRA = LEAD - ACTION_FROM;
+
+type Side = "L" | "R";
+const SIDE: Record<Side, Place> = { L: [-440, 0, 0.92], R: [440, 0, 0.92] };
+
+/**
+ * A feature's opening: the phone glides to one side and the title and description
+ * come in on the other. After a read, the text slides out the way it came, and the
+ * phone glides back into its place in the beat as the beat's own timeline starts.
+ * `at` is where the beat's main phone stands when its timeline starts.
+ */
+export const Featured = ({ side, title, body, at = CENTRE, children }: { side: Side; title: string; body: string; at?: Place; children: ReactNode }) => {
+  const { s, fps } = useClock();
+  const [px, py, ps] = at;
+  const [sx, sy, ss] = SIDE[side];
+  // The whole scene is scaled by r and shifted by d, so the main phone sits at the
+  // centre (as the last beat left it), then beside the text, then back in place.
+  const r0 = 1 / ps;
+  const r1 = ss / ps;
+  const into = k(s, 0, 0.9, soft);
+  const back = k(s, 4.0, LEAD);
+  const r = r0 + (r1 - r0) * into + (1 - r1) * back;
+  const d = (p: number, q: number) => -r0 * p + (q - r1 * p + r0 * p) * into + (r1 * p - q) * back;
+  const textIn = k(s, 0.35, 1.25, soft);
+  const textOut = k(s, 3.9, 4.6, easeIn);
+  const dir = side === "L" ? 1 : -1; // the text sits opposite the phone and leaves toward its own edge
+  const scene =
+    s < LEAD ? (
+      <Freeze frame={Math.round(ACTION_FROM * fps)}>{children}</Freeze>
+    ) : (
+      <Sequence from={Math.round((LEAD - ACTION_FROM) * fps)} layout="none">
+        {children}
+      </Sequence>
+    );
+  return (
+    <>
+      <AbsoluteFill style={{ scale: String(r), translate: `${d(px, sx)}px ${d(py, sy)}px` }}>{scene}</AbsoluteFill>
+      {s < LEAD && (
+        <AbsoluteFill style={{ justifyContent: "center", paddingLeft: side === "L" ? 990 : 190, paddingRight: side === "L" ? 150 : 950 }}>
+          <div style={{ opacity: textIn * (1 - textOut), translate: `${dir * ((1 - textIn) * 50 + textOut * 900)}px 0`, display: "flex", flexDirection: "column", gap: 24 }}>
+            <span style={{ fontFamily: F.title, fontSize: 78, lineHeight: 1.05, color: C.ink }}>{title}</span>
+            <span style={{ fontFamily: F.body, fontSize: 34, lineHeight: 1.45, color: C.muted }}>{body}</span>
+          </div>
+        </AbsoluteFill>
+      )}
+    </>
+  );
+};
 
 // ---------------------------------------------------------------- tap targets (screen points, measured from stills)
 
@@ -163,7 +208,6 @@ export const PhoneEnter = () => {
       <Phone style={{ translate: `0 ${interpolate(s, [0, 0.9], [1100, 0], { ...clamp, easing: soft })}px` }}>
         <ClinicScreen nearby={2} workers={[ADA.name, BEN.name]} received={EARLIER_RECEIVED} scroll={150} />
       </Phone>
-      <Sfx at={0} src={SFX.whoosh} volume={0.3} />
     </Camera>
   );
 };
@@ -197,7 +241,7 @@ export const SetupBeat = () => {
         home(10.5),
       ]}
     >
-      <Phone dim={dim(s)}>
+      <Phone>
         {cut ? (
           <WorkerHome name={ADA.name} nearby={2} clinic="none" />
         ) : (
@@ -224,7 +268,6 @@ export const SetupBeat = () => {
           />
         )}
       </Phone>
-      <KeyClicks text="Ada" start={NAME_START} per={NAME_PER} />
     </Camera>
   );
 };
@@ -232,11 +275,9 @@ export const SetupBeat = () => {
 // ---------------------------------------------------------------- 2 enroll with a scan
 
 export const EnrollBeat = () => {
-  const { s, fps } = useClock();
-  const into = k(s, 0.5, 1.1);
-  const back = k(s, 13.3, 13.9);
-  const ada = lerp(lerp(CENTRE, LEFT, into), CENTRE, back);
-  const clinic: Place = [interpolate(s, [0.6, 1.25], [OFF_RIGHT[0], SPLIT], { ...clamp, easing: soft }) + interpolate(s, [13.3, 13.9], [0, 1100], { ...clamp, easing: easeIn }), Y, P];
+  const { s } = useClock();
+  const ada = lerp(RIGHT, CENTRE, k(s, 13.3, 13.9));
+  const clinic: Place = [interpolate(s, [0.6, 1.25], [-OFF, -SPLIT], { ...clamp, easing: soft }) - interpolate(s, [13.3, 13.9], [0, 1500], { ...clamp, easing: easeIn }), Y, P];
   const scanning = s >= 1.9 && s < 3.15;
   const adaState = s < 3.15 ? "none" : s < 7.1 ? "waiting" : "enrolled";
   const request = k(s, 4.6, 5.0, out) * (1 - k(s, 6.95, 7.3));
@@ -245,15 +286,15 @@ export const EnrollBeat = () => {
       keys={[
         home(0),
         home(4.3),
-        aimOn(4.9, 1.5, RIGHT, 195, 260),
-        aimOn(7.0, 1.5, RIGHT, 195, 260),
-        aimOn(7.6, 1.4, LEFT, 195, 230),
-        aimOn(9.0, 1.7, LEFT, 195, 215),
-        aimOn(12.4, 1.7, LEFT, 195, 215),
+        aimOn(4.9, 1.5, LEFT, 195, 260),
+        aimOn(7.0, 1.5, LEFT, 195, 260),
+        aimOn(7.6, 1.4, RIGHT, 195, 230),
+        aimOn(9.0, 1.7, RIGHT, 195, 215),
+        aimOn(12.4, 1.7, RIGHT, 195, 215),
         home(13.0),
       ]}
     >
-      <Placed at={ada} dimmed={dim(s)}>
+      <Placed at={ada}>
         {scanning ? <ScannerScreen qr={k(s, 2.0, 2.8, out)} flash={interpolate(s, [2.85, 2.95, 3.15], [0, 1, 0], clamp)} /> : <WorkerHome name={ADA.name} nearby={2} clinic={adaState} enrolled={k(s, 7.1, 7.45, out)} />}
         <Touch
           path={[
@@ -264,7 +305,7 @@ export const EnrollBeat = () => {
           end={1.9}
         />
       </Placed>
-      <Placed at={clinic} dimmed={dim(s)}>
+      <Placed at={clinic}>
         <ClinicScreen nearby={2} request={request} enrollPressed={held(s, [6.8])} workers={s >= 7.0 ? [ADA.name] : []} showCode received={[]} />
         <Touch
           path={[
@@ -275,12 +316,6 @@ export const EnrollBeat = () => {
           end={7.1}
         />
       </Placed>
-      <Sfx at={1.65 * fps} src={SFX.whoosh} volume={0.3} />
-      <Sfx at={3.0 * fps} src={SFX.whoosh} volume={0.25} />
-      <Sfx at={4.6 * fps} src={SFX.chime} volume={0.35} />
-      <Sfx at={6.85 * fps} src={SFX.toggle} volume={0.4} />
-      <Sfx at={7.1 * fps} src={SFX.toggle} volume={0.4} />
-      <Sfx at={13.3 * fps} src={SFX.whoosh} volume={0.25} />
     </Camera>
   );
 };
@@ -315,7 +350,7 @@ export const RecordBeat = () => {
         home(12.9),
       ]}
     >
-      <Phone dim={dim(s)}>
+      <Phone>
         {form ? (
           <VisitFormScreen patient={s >= 2.8 ? RUTH : undefined} v={recorded(s)} scroll={scroll} pressed={pressed} />
         ) : (
@@ -358,12 +393,11 @@ const CONFUSED: Vitals = { ...RECORDED, consciousness: "C" };
 
 /** Four risk bands popping in over a dark backdrop. */
 const RiskHero = ({ s, from, to }: { s: number; from: number; to: number }) => {
-  const { fps } = useClock();
   const show = k(s, from, from + 0.3) * (1 - k(s, to - 0.3, to));
   const bands = ["low", "low-medium", "medium", "high"] as const;
   return (
     <AbsoluteFill style={{ backgroundColor: "#EEF5F8F2", opacity: show, alignItems: "center", justifyContent: "center" }}>
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 22, translate: "0 -90px" }}>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 22, translate: "0 -20px" }}>
         {bands.map((b, i) => {
           const at = from + 0.35 + i * 0.32;
           const p = k(s, at, at + 0.25, soft);
@@ -389,15 +423,12 @@ const RiskHero = ({ s, from, to }: { s: number; from: number; to: number }) => {
           );
         })}
       </div>
-      {bands.map((b, i) => (
-        <Sfx key={b} at={(from + 0.35 + i * 0.32) * fps} src={SFX.tap} volume={0.35} />
-      ))}
     </AbsoluteFill>
   );
 };
 
 export const ScoreBeat = () => {
-  const { s, fps } = useClock();
+  const { s } = useClock();
   const vitals = s < 1.4 ? RECORDED : s < 3.6 ? CONFUSED : DETERIORATING;
   const counting = s >= 3.6 && s < 4.4;
   const shown = counting ? Math.round(interpolate(s, [3.6, 4.4], [news2(CONFUSED).total, news2(DETERIORATING).total], clamp)) : undefined;
@@ -422,7 +453,7 @@ export const ScoreBeat = () => {
           home(11.9),
         ]}
       >
-        <Phone dim={dim(s)}>
+        <Phone>
           {cut ? (
             <WorkerHome name={ADA.name} nearby={2} clinic="enrolled" enrolled={1} sent={[{ v: RUTH_VISIT_PENDING, delivered: 0 }]} scroll={220} />
           ) : (
@@ -444,7 +475,6 @@ export const ScoreBeat = () => {
             />
           )}
         </Phone>
-        <Sfx at={10.3 * fps} src={SFX.whoosh} volume={0.2} />
       </Camera>
       <RiskHero s={s} from={6.4} to={8.6} />
     </>
@@ -512,10 +542,10 @@ const CARRIED: [string, string, string][] = [[ADA.name, "Riverside Clinic", "10:
 const clinicList = (extra: Received[] = []) => sickestFirst([...EARLIER, ...extra.map((r) => r.v)]).map((v) => extra.find((r) => r.v === v) ?? { v });
 
 export const CarryBeat = () => {
-  const { s, fps } = useClock();
-  const ada = lerp(lerp(CENTRE, T_LEFT, k(s, 0.4, 1.0)), [-1300, TY, TRIO], k(s, 15.0, 15.6, easeIn));
-  const clinic = lerp(lerp([1300, TY, TRIO], T_RIGHT, k(s, 0.5, 1.1, soft)), CENTRE, k(s, 15.0, 15.8));
-  const ben = lerp(lerp([0, 900, TRIO], T_MID, k(s, 2.2, 2.8, soft)), [0, 1000, TRIO], k(s, 15.0, 15.5, easeIn));
+  const { s } = useClock();
+  const ada = lerp(T_LEFT, [-OFF, TY, TRIO], k(s, 15.0, 15.6, easeIn));
+  const clinic = lerp(lerp([OFF, TY, TRIO], T_RIGHT, k(s, 0.7, 1.3, soft)), CENTRE, k(s, 15.0, 15.8));
+  const ben = lerp(lerp([0, 1000, TRIO], T_MID, k(s, 2.2, 2.8, soft)), [0, 1100, TRIO], k(s, 15.0, 15.5, easeIn));
   const reach = k(s, 1.0, 1.5) * (1 - k(s, 14.8, 15.2));
   const delivered = s >= 10.6 ? 1 + (s - 10.6) : 0;
   const centre = (p: Place, sy: number): [number, number] => [p[0], p[1] + (sy - 422) * p[2]];
@@ -536,26 +566,19 @@ export const CarryBeat = () => {
       <Reach at={T_LEFT} r={430} show={reach} />
       <Reach at={T_RIGHT} r={430} show={reach} />
       <Reach at={T_MID} r={640} show={reach * k(s, 2.4, 2.9)} />
-      <Placed at={ada} dimmed={dim(s)}>
+      <Placed at={ada}>
         <WorkerHome name={ADA.name} nearby={1} clinic="enrolled" enrolled={1} sent={[{ v: RUTH_VISIT_PENDING, delivered }]} scroll={ADA_CARD_SCROLL} />
       </Placed>
-      <Placed at={ben} dimmed={dim(s)}>
+      <Placed at={ben}>
         <WorkerHome name={BEN.name} nearby={2} clinic="enrolled" enrolled={1} carried={s >= 4.2 ? CARRIED : []} scroll={BEN_SCROLL} />
       </Placed>
-      <Placed at={clinic} dimmed={dim(s)}>
+      <Placed at={clinic}>
         <ClinicScreen nearby={1} workers={[ADA.name, BEN.name]} received={clinicList([{ v: RUTH_VISIT_PENDING, show: k(s, 8.0, 8.45, out) }])} scroll={CLINIC_LIST_SCROLL} />
       </Placed>
       <Packet s={s} from={3.6} to={4.2} a={centre(T_LEFT, 600)} b={centre(T_MID, BEN_CARD_Y)} />
       <Packet s={s} from={7.4} to={8.0} a={centre(T_MID, BEN_CARD_Y)} b={centre(T_RIGHT, 300)} />
       <Packet s={s} from={9.6} to={10.1} a={centre(T_RIGHT, 300)} b={centre(T_MID, BEN_CARD_Y)} small />
       <Packet s={s} from={10.1} to={10.6} a={centre(T_MID, BEN_CARD_Y)} b={centre(T_LEFT, ADA_PILL_Y)} small />
-      <Sfx at={2.2 * fps} src={SFX.whoosh} volume={0.25} />
-      <Sfx at={3.6 * fps} src={SFX.whoosh} volume={0.4} />
-      <Sfx at={7.4 * fps} src={SFX.whoosh} volume={0.4} />
-      <Sfx at={8.0 * fps} src={SFX.chime} volume={0.35} />
-      <Sfx at={9.6 * fps} src={SFX.whoosh} volume={0.2} />
-      <Sfx at={10.6 * fps} src={SFX.toggle} volume={0.4} />
-      <Sfx at={15.0 * fps} src={SFX.whoosh} volume={0.25} />
     </Camera>
   );
 };
@@ -565,7 +588,7 @@ export const CarryBeat = () => {
 const RUTH_CARD_Y = 350; // Ruth's vitals grid with the list at CLINIC_LIST_SCROLL
 
 export const SickestBeat = () => {
-  const { s, fps } = useClock();
+  const { s } = useClock();
   const scroll = interpolate(s, [7.4, 7.9], [CLINIC_LIST_SCROLL, 0], { ...clamp, easing: ease });
   const received = clinicList([{ v: RUTH_VISIT_PENDING }, { v: JOSEPH_VISIT, show: k(s, 1.8, 2.3, out) }]);
   return (
@@ -582,10 +605,9 @@ export const SickestBeat = () => {
         home(10.6),
       ]}
     >
-      <Phone dim={dim(s)}>
+      <Phone>
         <ClinicScreen nearby={2} workers={[ADA.name, BEN.name]} received={received} scroll={scroll} />
       </Phone>
-      <Sfx at={1.8 * fps} src={SFX.chime} volume={0.3} />
     </Camera>
   );
 };
@@ -613,7 +635,7 @@ const EhrHero = ({ s, from, to }: { s: number; from: number; to: number }) => {
   const line = { fontFamily: F.body, fontSize: 25, color: C.ink };
   return (
     <AbsoluteFill style={{ backgroundColor: "#EEF5F8F2", opacity: show, alignItems: "center", justifyContent: "center" }}>
-      <div style={{ width: 1060, translate: "0 -100px", backgroundColor: C.surface, borderRadius: 16, padding: "32px 40px", boxShadow: "0 30px 90px #1D273333", scale: String(0.94 + 0.06 * show) }}>
+      <div style={{ width: 1060, translate: "0 -20px", backgroundColor: C.surface, borderRadius: 16, padding: "32px 40px", boxShadow: "0 30px 90px #1D273333", scale: String(0.94 + 0.06 * show) }}>
         <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between" }}>
           <span style={{ fontFamily: F.title, fontSize: 54, color: C.ink }}>{RUTH.name}</span>
           <span style={{ fontFamily: F.medium, fontSize: 22, color: C.muted }}>FHIR R4 · Medplum</span>
@@ -640,10 +662,9 @@ const EhrHero = ({ s, from, to }: { s: number; from: number; to: number }) => {
 };
 
 export const EhrBeat = () => {
-  const { s, fps } = useClock();
-  const into = k(s, 0.4, 1.0);
-  const clinic = lerp(CENTRE, LEFT, into);
-  const ada: Place = [interpolate(s, [0.5, 1.15], [OFF_RIGHT[0], SPLIT], { ...clamp, easing: soft }), Y, P];
+  const { s } = useClock();
+  const clinic = LEFT;
+  const ada: Place = [interpolate(s, [0.6, 1.25], [OFF, SPLIT], { ...clamp, easing: soft }), Y, P];
   const synced = s >= 2.6;
   const list = clinicList([{ v: RUTH_VISIT_PENDING }, { v: JOSEPH_VISIT }]).map((r, i) => ({ v: { ...r.v, ehr: synced && s >= FLIP_AT(i) ? ("added" as const) : ("pending" as const) } }));
   const scroll = interpolate(s, [0.6, 1.3, 3.1, 3.8], [CLINIC_LIST_SCROLL, EHR_SCROLL, EHR_SCROLL, CLINIC_LIST_SCROLL], { ...clamp, easing: ease });
@@ -665,19 +686,14 @@ export const EhrBeat = () => {
           home(11.8),
         ]}
       >
-        <Placed at={clinic} dimmed={dim(s)}>
+        <Placed at={clinic}>
           <ClinicScreen nearby={1} workers={[ADA.name, BEN.name]} received={list} note={synced ? "Medplum: 5 added" : undefined} synced={synced} scroll={scroll} wifi={k(s, 1.6, 1.9, out)} />
         </Placed>
-        <Placed at={ada} dimmed={dim(s)}>
+        <Placed at={ada}>
           <WorkerHome name={ADA.name} nearby={1} clinic="enrolled" enrolled={1} sent={[{ v: { ...RUTH_VISIT, ehr: adaEhr }, delivered: 2 }]} scroll={ADA_CARD_SCROLL} wifi={k(s, 9.0, 9.3, out)} />
         </Placed>
-        <Sfx at={1.6 * fps} src={SFX.toggle} volume={0.3} />
-        <Sfx at={3.9 * fps} src={SFX.toggle} volume={0.35} />
-        <Sfx at={9.0 * fps} src={SFX.toggle} volume={0.3} />
-        <Sfx at={9.4 * fps} src={SFX.toggle} volume={0.4} />
       </Camera>
       <EhrHero s={s} from={5.4} to={8.4} />
-      <Sfx at={5.4 * fps} src={SFX.whoosh} volume={0.3} />
     </>
   );
 };
@@ -703,7 +719,6 @@ export const Exit = () => {
       <Placed at={[RIGHT[0], RIGHT[1] + drop, P]}>
         <WorkerHome name={ADA.name} nearby={1} clinic="enrolled" enrolled={1} sent={[{ v: { ...RUTH_VISIT, ehr: "already" }, delivered: 2 }]} scroll={ADA_CARD_SCROLL} wifi={1} />
       </Placed>
-      <Sfx at={12} src={SFX.whoosh} volume={0.15} />
     </AbsoluteFill>
   );
 };

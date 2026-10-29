@@ -1,3 +1,5 @@
+<img src="ios/WeCare/Images.xcassets/AppIcon.appiconset/icon-1024.png" alt="WeCare app icon" width="128">
+
 # WeCare
 
 WeCare is a mobile app for community health workers who visit patients at

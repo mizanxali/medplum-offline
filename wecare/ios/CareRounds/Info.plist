@@ -84,5 +84,13 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>UIAppFonts</key>
+	<array>
+		<string>HostGroteskLight-Regular.ttf</string>
+		<string>HostGroteskLight-SemiBold.ttf</string>
+		<string>HostGroteskLight-Medium.ttf</string>
+		<string>Neuton-Regular.ttf</string>
+		<string>Neuton-Bold.ttf</string>
+	</array>
 </dict>
 </plist>

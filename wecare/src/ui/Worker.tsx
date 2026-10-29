@@ -1,10 +1,20 @@
+import {
+  Building2,
+  CircleCheck,
+  Clock,
+  ClipboardList,
+  Plus,
+  RotateCcw,
+  ScanLine,
+  TriangleAlert,
+  X,
+} from 'lucide-react-native';
 import React, { useRef, useState } from 'react';
 import {
   Alert,
   PermissionsAndroid,
   Platform,
   Pressable,
-  ScrollView,
   Text,
   View,
 } from 'react-native';
@@ -12,8 +22,21 @@ import { Camera, CameraType } from 'react-native-camera-kit';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { enroll, resetDemo } from '../mesh';
 import { useStore, type Sent } from '../state';
-import { Button, C, Card, Chip, Label, StatusBand, st } from './kit';
-import { CarriedCard, SyncCard, SyncedChip } from './shared';
+import {
+  Button,
+  C,
+  Card,
+  F,
+  Header,
+  HeaderAction,
+  Icon,
+  IconTile,
+  Pill,
+  Scroll,
+  Section,
+  st,
+} from './kit';
+import { CarriedCard, SyncCard, SyncedPill } from './shared';
 import { VisitCard } from './VisitCard';
 import { VisitForm } from './VisitForm';
 
@@ -36,57 +59,74 @@ export function Worker() {
 
   return (
     <View style={st.screen}>
-      <StatusBand
+      <Header
         title={s.name}
-        onMenu={() =>
-          Alert.alert(
-            'Reset this phone?',
-            'Clears the clinic enrollment and every visit on this phone.',
-            [
-              { text: 'Cancel', style: 'cancel' },
-              { text: 'Reset', style: 'destructive', onPress: resetDemo },
-            ],
-          )
+        right={
+          <HeaderAction
+            icon={RotateCcw}
+            label="Reset"
+            onPress={() =>
+              Alert.alert(
+                'Reset this phone?',
+                'Clears the clinic enrollment and every visit on this phone.',
+                [
+                  { text: 'Cancel', style: 'cancel' },
+                  { text: 'Reset', style: 'destructive', onPress: resetDemo },
+                ],
+              )
+            }
+          />
         }
       />
-      <ScrollView contentContainerStyle={st.scroll}>
+      <Scroll>
         <Card>
-          <Label>Clinic</Label>
-          {!s.clinic && (
-            <>
-              <Text style={st.body}>
-                Not enrolled. Ask the clinic to show its code, then scan it
-                while you are in Bluetooth range of the clinic phone.
+          <View style={[st.row, { gap: 12 }]}>
+            <IconTile icon={Building2} />
+            <View style={{ flex: 1, gap: 2 }}>
+              <Text style={st.title}>
+                {s.clinic ? s.clinic.name : 'No clinic yet'}
               </Text>
-              <Button title="Scan clinic code" onPress={openScanner} />
-            </>
-          )}
-          {s.clinic && (
-            <>
-              <Text style={st.title}>{s.clinic.name}</Text>
-              <Text style={st.small}>
-                {s.enrolled
-                  ? 'Enrolled. Visits go to this clinic only, sealed for it alone.'
-                  : 'Waiting for the clinic to accept. Stay in Bluetooth range for this step.'}
-              </Text>
-              {!s.enrolled && (
-                <Button
-                  title="Scan a different code"
-                  kind="plain"
-                  onPress={openScanner}
-                />
+              {s.clinic && s.enrolled ? (
+                <View style={[st.row, { gap: 5 }]}>
+                  <Icon icon={CircleCheck} color={C.success} size={14} />
+                  <Text style={[st.small, { color: C.success }]}>
+                    Enrolled. Visits are sealed for this clinic alone.
+                  </Text>
+                </View>
+              ) : (
+                <Text style={st.small}>
+                  {s.clinic
+                    ? 'Waiting for the clinic to accept. Stay close to the clinic phone.'
+                    : "Scan the clinic's code while you are close to its phone."}
+                </Text>
               )}
-            </>
+            </View>
+          </View>
+          {!s.enrolled && (
+            <Button
+              title={s.clinic ? 'Scan a different code' : 'Scan clinic code'}
+              icon={ScanLine}
+              kind={s.clinic ? 'soft' : 'primary'}
+              onPress={openScanner}
+            />
           )}
         </Card>
 
-        <Button title="New visit" onPress={() => setScreen('visit')} />
+        <Button
+          title="New visit"
+          icon={Plus}
+          onPress={() => setScreen('visit')}
+        />
 
-        <Label style={{ marginTop: 4 }}>Today's visits · {s.sent.length}</Label>
+        <Section title="Today's visits" count={s.sent.length} />
         {s.sent.length === 0 && (
-          <Text style={st.small}>
-            Record a visit; it is kept here until the clinic confirms it.
-          </Text>
+          <Card style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
+            <IconTile icon={ClipboardList} color={C.muted} bg={C.sunken} />
+            <Text style={[st.small, { flex: 1 }]}>
+              Visits you record stay on this phone until the clinic confirms
+              them.
+            </Text>
+          </Card>
         )}
         {s.sent.map(x => (
           <VisitCard
@@ -96,32 +136,30 @@ export function Worker() {
               <View
                 style={[
                   st.row,
-                  { justifyContent: 'space-between', flexWrap: 'wrap', gap: 6 },
+                  { justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 },
                 ]}
               >
                 <Delivery sent={x} />
-                <SyncedChip synced={x.synced} />
+                <SyncedPill synced={x.synced} />
               </View>
             }
           />
         ))}
 
+        <Section title="Electronic health record" />
         <SyncCard pending={s.sent.filter(x => x.synced === 'pending').length} />
+        <Section title="Carried for others" />
         <CarriedCard />
-      </ScrollView>
+      </Scroll>
     </View>
   );
 }
 
 function Delivery({ sent }: { sent: Sent }) {
   return sent.delivered ? (
-    <Chip text="✓ At the clinic" fg={C.accent} bg={C.accentSoft} />
+    <Pill text="At the clinic" icon={CircleCheck} tone="success" />
   ) : (
-    <Chip
-      text="On this phone · waiting for a route"
-      fg="#9A6411"
-      bg="#FBF1DC"
-    />
+    <Pill text="On this phone, finding a route" icon={Clock} />
   );
 }
 
@@ -131,9 +169,10 @@ function Scanner({ onDone }: { onDone: () => void }) {
   const [error, setError] = useState('');
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#000' }}>
+    <View style={{ flex: 1, backgroundColor: C.ink }}>
       {/* No showFrame: its viewfinder is shaped for 1D barcodes, and camera-kit
-          drops any code not wholly inside it, so a QR on a phone never scans. */}
+          drops any code not wholly inside it, so a QR on a phone never scans.
+          The square below is only a guide; codes anywhere in view count. */}
       <Camera
         style={{ flex: 1 }}
         cameraType={CameraType.Back}
@@ -148,35 +187,75 @@ function Scanner({ onDone }: { onDone: () => void }) {
         }}
       />
       <View
+        pointerEvents="none"
         style={{
           position: 'absolute',
+          top: 0,
+          bottom: 0,
           left: 0,
           right: 0,
-          top: insets.top + 12,
-          paddingHorizontal: 16,
-          gap: 8,
+          alignItems: 'center',
+          justifyContent: 'center',
         }}
       >
-        <Text style={{ color: '#fff', fontSize: 18, fontWeight: '800' }}>
+        <View
+          style={{
+            width: 240,
+            height: 240,
+            borderRadius: 12,
+            borderWidth: 2,
+            borderColor: 'rgba(255,255,255,0.85)',
+          }}
+        />
+      </View>
+      <View
+        style={{
+          position: 'absolute',
+          left: 18,
+          right: 18,
+          top: insets.top + 14,
+          gap: 10,
+        }}
+      >
+        <Text style={[st.screenTitle, { color: '#FFFFFF', flex: 0 }]}>
           Scan the clinic's code
         </Text>
         {!!error && (
-          <Text style={{ color: '#FCA5A5', fontSize: 14 }}>{error}</Text>
+          <View
+            style={[
+              st.row,
+              {
+                gap: 8,
+                backgroundColor: C.errorSoft,
+                borderRadius: 6,
+                padding: 10,
+              },
+            ]}
+          >
+            <Icon icon={TriangleAlert} color={C.error} size={16} />
+            <Text style={[st.small, { flex: 1, color: C.error }]}>{error}</Text>
+          </View>
         )}
       </View>
       <Pressable
         onPress={onDone}
-        style={{
-          position: 'absolute',
-          bottom: insets.bottom + 24,
-          alignSelf: 'center',
-          paddingHorizontal: 24,
-          paddingVertical: 12,
-          borderRadius: 6,
-          backgroundColor: 'rgba(255,255,255,0.9)',
-        }}
+        accessibilityRole="button"
+        style={[
+          st.row,
+          {
+            position: 'absolute',
+            bottom: insets.bottom + 28,
+            alignSelf: 'center',
+            gap: 8,
+            paddingHorizontal: 22,
+            paddingVertical: 12,
+            borderRadius: 6,
+            backgroundColor: C.surface,
+          },
+        ]}
       >
-        <Text style={{ fontWeight: '700', color: C.ink }}>Cancel</Text>
+        <Icon icon={X} color={C.ink} size={16} />
+        <Text style={[st.body, { fontFamily: F.medium }]}>Cancel</Text>
       </Pressable>
     </View>
   );

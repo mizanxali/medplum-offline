@@ -1,11 +1,33 @@
+import {
+  Check,
+  Inbox,
+  QrCode,
+  RotateCcw,
+  UserRound,
+  Waypoints,
+  X,
+} from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
-import { Alert, ScrollView, Text, View } from 'react-native';
+import { Alert, Pressable, Text, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import { news2, type Risk } from '../domain/news2';
 import { accept, decline, inviteCode, resetDemo } from '../mesh';
 import { useStore } from '../state';
-import { Button, Card, Label, short, StatusBand, st } from './kit';
-import { CarriedCard, SyncCard, SyncedChip } from './shared';
+import {
+  Button,
+  C,
+  Card,
+  F,
+  Header,
+  HeaderAction,
+  Icon,
+  IconTile,
+  Scroll,
+  Section,
+  short,
+  st,
+} from './kit';
+import { CarriedCard, SyncCard, SyncedPill } from './shared';
 import { VisitCard } from './VisitCard';
 
 const SEVERITY: Record<Risk, number> = {
@@ -35,36 +57,51 @@ export function Clinic() {
 
   return (
     <View style={st.screen}>
-      <StatusBand
+      <Header
         title={s.name}
-        onMenu={() =>
-          Alert.alert(
-            'Reset this phone?',
-            'Clears enrolled workers and received visits.',
-            [
-              { text: 'Cancel', style: 'cancel' },
-              { text: 'Reset', style: 'destructive', onPress: resetDemo },
-            ],
-          )
+        right={
+          <HeaderAction
+            icon={RotateCcw}
+            label="Reset"
+            onPress={() =>
+              Alert.alert(
+                'Reset this phone?',
+                'Clears enrolled workers and received visits.',
+                [
+                  { text: 'Cancel', style: 'cancel' },
+                  { text: 'Reset', style: 'destructive', onPress: resetDemo },
+                ],
+              )
+            }
+          />
         }
       />
-      <ScrollView contentContainerStyle={st.scroll}>
+      <Scroll>
         {s.requests.map(r => (
           <Card
             key={r.address}
-            style={{ borderColor: '#C2510F', borderWidth: 2, padding: 13 }}
+            style={{ borderColor: C.accent, borderWidth: 1.5 }}
           >
-            <Label>Enrollment request</Label>
-            <Text style={st.title}>{r.name}</Text>
-            <Text style={st.mono}>{short(r.address)}</Text>
+            <View style={[st.row, { gap: 12 }]}>
+              <IconTile icon={UserRound} />
+              <View style={{ flex: 1 }}>
+                <Text style={st.title}>{r.name} would like to enroll</Text>
+                <Text style={st.mono}>{short(r.address)}</Text>
+              </View>
+            </View>
             <View style={[st.row, { gap: 10 }]}>
               <View style={{ flex: 1 }}>
-                <Button title="Enroll" onPress={() => accept(r.address)} />
+                <Button
+                  title="Enroll"
+                  icon={Check}
+                  onPress={() => accept(r.address)}
+                />
               </View>
               <View style={{ flex: 1 }}>
                 <Button
                   title="Decline"
-                  kind="plain"
+                  icon={X}
+                  kind="soft"
                   onPress={() => decline(r.address)}
                 />
               </View>
@@ -72,74 +109,112 @@ export function Clinic() {
           </Card>
         ))}
 
-        <Card>
-          <View style={[st.row, { justifyContent: 'space-between' }]}>
-            <Label>Health workers · {s.workers.length}</Label>
-            <Text
-              style={[st.small, { fontWeight: '700' }]}
+        <Section
+          title="Health workers"
+          count={s.workers.length}
+          right={
+            <Pressable
               onPress={() => setShowCode(x => !x)}
+              hitSlop={10}
+              style={[st.row, { gap: 6 }]}
             >
-              {showCode ? 'Hide code' : 'Enroll someone'}
-            </Text>
-          </View>
-          {s.workers.length > 0 && (
-            <Text style={st.body}>{s.workers.map(w => w.name).join(', ')}</Text>
-          )}
-          {showCode && (
-            <View style={{ alignItems: 'center', gap: 10, paddingVertical: 8 }}>
-              {code ? (
-                <QRCode value={code} size={210} />
-              ) : (
-                <Text style={st.small}>Waiting for the mesh…</Text>
-              )}
-              <Text style={[st.small, { textAlign: 'center' }]}>
-                Scan with CareRounds on the health worker's phone, within
-                Bluetooth range. The code carries this clinic's key, not a
-                password.
+              <Icon icon={QrCode} color={C.accent} size={16} />
+              <Text
+                style={[st.small, { color: C.accent, fontFamily: F.medium }]}
+              >
+                {showCode ? 'Hide code' : 'Enroll someone'}
               </Text>
-            </View>
-          )}
-        </Card>
+            </Pressable>
+          }
+        />
+        {(s.workers.length > 0 || showCode) && (
+          <Card>
+            {s.workers.map(w => (
+              <View key={w.address} style={[st.row, { gap: 10 }]}>
+                <Icon icon={UserRound} color={C.accent} size={18} />
+                <Text style={[st.body, { flex: 1 }]}>{w.name}</Text>
+                <Text style={st.mono}>{short(w.address)}</Text>
+              </View>
+            ))}
+            {s.workers.length > 0 && showCode && <View style={st.divider} />}
+            {showCode && (
+              <View
+                style={{ alignItems: 'center', gap: 12, paddingVertical: 6 }}
+              >
+                {code ? (
+                  <View
+                    style={{
+                      padding: 14,
+                      backgroundColor: '#FFFFFF',
+                      borderRadius: 8,
+                    }}
+                  >
+                    <QRCode value={code} size={196} color={C.ink} />
+                  </View>
+                ) : (
+                  <Text style={st.small}>Waiting for the mesh…</Text>
+                )}
+                <Text style={[st.small, { textAlign: 'center' }]}>
+                  Scan this with CareRounds on the health worker's phone, close
+                  by. It carries this clinic's key, not a password.
+                </Text>
+              </View>
+            )}
+          </Card>
+        )}
 
-        <Label style={{ marginTop: 4 }}>
-          Visits received · {visits.length}
-        </Label>
+        <Section title="Visits received" count={visits.length} />
         {visits.length === 0 && (
-          <Text style={st.small}>
-            Nothing yet. Visits arrive here directly or through other health
-            workers' phones.
-          </Text>
+          <Card style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
+            <IconTile icon={Inbox} color={C.muted} bg={C.sunken} />
+            <Text style={[st.small, { flex: 1 }]}>
+              Nothing yet. Visits arrive here directly or through other health
+              workers' phones, sickest first.
+            </Text>
+          </Card>
         )}
         {visits.map(r => (
           <VisitCard
             key={r.visit.id}
             visit={r.visit}
             footer={
-              <View style={[st.row, { justifyContent: 'space-between' }]}>
-                <Text style={st.small}>
-                  {workerName(r.from)} ·{' '}
-                  {r.hops === 0
-                    ? 'direct'
-                    : `via ${r.hops} other phone${
-                        r.hops === 1 ? '' : 's'
-                      }`}{' '}
-                  ·{' '}
-                  {new Date(r.receivedAt).toLocaleTimeString([], {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
-                </Text>
-                <SyncedChip synced={r.synced} />
+              <View
+                style={[
+                  st.row,
+                  { justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 },
+                ]}
+              >
+                <View style={[st.row, { gap: 6 }]}>
+                  <Icon
+                    icon={r.hops === 0 ? UserRound : Waypoints}
+                    color={C.muted}
+                    size={14}
+                  />
+                  <Text style={st.small}>
+                    {workerName(r.from)},{' '}
+                    {r.hops === 0
+                      ? 'direct'
+                      : `via ${r.hops} other phone${r.hops === 1 ? '' : 's'}`}
+                    ,{' '}
+                    {new Date(r.receivedAt).toLocaleTimeString([], {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })}
+                  </Text>
+                </View>
+                <SyncedPill synced={r.synced} />
               </View>
             }
           />
         ))}
 
+        <Section title="Electronic health record" />
         <SyncCard
           pending={s.received.filter(r => r.synced === 'pending').length}
         />
+        <Section title="Carried for others" />
         <CarriedCard />
-      </ScrollView>
+      </Scroll>
     </View>
   );
 }

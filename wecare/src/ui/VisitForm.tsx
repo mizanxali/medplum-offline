@@ -1,6 +1,18 @@
+import {
+  Activity,
+  Check,
+  Droplets,
+  Gauge,
+  HeartPulse,
+  Minus,
+  Plus,
+  Thermometer,
+  Wind,
+  X,
+  type LucideIcon,
+} from 'lucide-react-native';
 import React, { useState } from 'react';
-import { Pressable, ScrollView, Switch, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Pressable, Switch, Text, View } from 'react-native';
 import {
   ACTION,
   news2,
@@ -10,16 +22,46 @@ import {
 import { newId, NORMAL, RANGES, ROSTER, type Patient } from '../domain/visit';
 import { record } from '../mesh';
 import { useStore } from '../state';
-import { Button, C, Card, Label, RISK, st } from './kit';
+import {
+  Button,
+  C,
+  Card,
+  F,
+  Header,
+  HeaderAction,
+  Icon,
+  RISK,
+  Scroll,
+  Section,
+  st,
+} from './kit';
 
 type Numeric = keyof typeof RANGES;
 
-const ROWS: { key: Numeric; label: string; unit: string; step: number }[] = [
-  { key: 'respRate', label: 'Respiration', unit: '/min', step: 1 },
-  { key: 'spo2', label: 'SpO₂', unit: '%', step: 1 },
-  { key: 'systolic', label: 'Systolic BP', unit: 'mmHg', step: 5 },
-  { key: 'pulse', label: 'Pulse', unit: '/min', step: 2 },
-  { key: 'tempC', label: 'Temperature', unit: '°C', step: 0.1 },
+const ROWS: {
+  key: Numeric;
+  icon: LucideIcon;
+  label: string;
+  unit: string;
+  step: number;
+}[] = [
+  {
+    key: 'respRate',
+    icon: Activity,
+    label: 'Breathing',
+    unit: '/min',
+    step: 1,
+  },
+  { key: 'spo2', icon: Droplets, label: 'SpO₂', unit: '%', step: 1 },
+  { key: 'systolic', icon: Gauge, label: 'Systolic BP', unit: 'mmHg', step: 5 },
+  { key: 'pulse', icon: HeartPulse, label: 'Pulse', unit: '/min', step: 2 },
+  {
+    key: 'tempC',
+    icon: Thermometer,
+    label: 'Temperature',
+    unit: '°C',
+    step: 0.1,
+  },
 ];
 
 // Quick fills for a demo; each lands in a different NEWS2 band.
@@ -46,8 +88,8 @@ const PRESETS: { name: string; vitals: Vitals }[] = [
 const ACVPU: { k: Consciousness; label: string }[] = [
   { k: 'A', label: 'Alert' },
   { k: 'C', label: 'New confusion' },
-  { k: 'V', label: 'Voice' },
-  { k: 'P', label: 'Pain' },
+  { k: 'V', label: 'Responds to voice' },
+  { k: 'P', label: 'Responds to pain' },
   { k: 'U', label: 'Unresponsive' },
 ];
 
@@ -56,7 +98,6 @@ const clamp = (k: Numeric, v: number) =>
 
 export function VisitForm({ onDone }: { onDone: () => void }) {
   const s = useStore();
-  const insets = useSafeAreaInsets();
   const [patient, setPatient] = useState<Patient | null>(null);
   const [v, setV] = useState<Vitals>(NORMAL);
   const score = news2(v);
@@ -64,54 +105,47 @@ export function VisitForm({ onDone }: { onDone: () => void }) {
 
   return (
     <View style={st.screen}>
-      <View style={[st.band, { paddingTop: insets.top + 10 }]}>
-        <View style={st.row}>
-          <Pressable onPress={onDone} hitSlop={12}>
-            <Text style={st.bandMenu}>Cancel</Text>
-          </Pressable>
-          <Text style={[st.bandTitle, { textAlign: 'center' }]}>New visit</Text>
-          <View style={{ width: 44 }} />
-        </View>
-      </View>
+      <Header
+        title="New visit"
+        showStatus={false}
+        right={<HeaderAction icon={X} label="Cancel" onPress={onDone} />}
+      />
 
       {/* The score is the point of the form, so it stays in view. */}
       <View
         style={{
+          marginHorizontal: 18,
+          marginBottom: 8,
+          borderRadius: 8,
           backgroundColor: risk.bg,
           paddingHorizontal: 16,
           paddingVertical: 12,
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 14,
         }}
       >
-        <View style={st.row}>
-          <Text
-            style={[
-              st.num,
-              {
-                fontSize: 40,
-                fontWeight: '800',
-                color: risk.fg,
-                marginRight: 12,
-              },
-            ]}
-          >
-            {score.total}
-          </Text>
-          <View style={{ flex: 1 }}>
-            <Text style={[st.label, { color: risk.fg }]}>
-              NEWS2 · {risk.label} risk
-            </Text>
-            <Text style={[st.title, { color: risk.fg }]}>
-              {ACTION[score.risk]}
-            </Text>
-          </View>
-        </View>
-        <Text style={[st.small, { color: risk.fg, marginTop: 2 }]}>
-          Scored on this phone. Validated for adults only.
+        <Text
+          style={[
+            st.num,
+            { fontFamily: F.title, fontSize: 46, color: risk.fg },
+          ]}
+        >
+          {score.total}
         </Text>
+        <View style={{ flex: 1 }}>
+          <Text style={[st.title, { color: risk.fg }]}>
+            {ACTION[score.risk]}
+          </Text>
+          <Text style={[st.small, { color: risk.fg }]}>
+            NEWS2, {risk.label.toLowerCase()} risk. Scored on this phone, for
+            adults.
+          </Text>
+        </View>
       </View>
 
-      <ScrollView contentContainerStyle={st.scroll}>
-        <Label>Patient</Label>
+      <Scroll>
+        <Section title="Patient" />
         <View style={[st.row, { flexWrap: 'wrap', gap: 8 }]}>
           {ROSTER.map(p => {
             const on = patient?.id === p.id;
@@ -119,55 +153,76 @@ export function VisitForm({ onDone }: { onDone: () => void }) {
               <Pressable
                 key={p.id}
                 onPress={() => setPatient(p)}
+                accessibilityRole="radio"
+                accessibilityState={{ checked: on }}
                 style={[
                   st.card,
-                  { paddingVertical: 8, gap: 0 },
-                  on && { borderColor: C.accent, borderWidth: 2 },
+                  { paddingVertical: 10, paddingHorizontal: 12, gap: 0 },
+                  on && {
+                    borderColor: C.accent,
+                    borderWidth: 1.5,
+                    backgroundColor: C.accentSoft,
+                  },
                 ]}
               >
-                <Text style={[st.body, { fontWeight: '600' }]}>{p.name}</Text>
-                <Text style={[st.small, { fontSize: 12 }]}>{p.household}</Text>
+                <View style={[st.row, { gap: 6 }]}>
+                  <Text style={[st.body, { fontFamily: F.medium }]}>
+                    {p.name}
+                  </Text>
+                  {on && <Icon icon={Check} color={C.accent} size={16} />}
+                </View>
+                <Text style={[st.small, { fontSize: 12.5 }]}>
+                  {p.household}
+                </Text>
               </Pressable>
             );
           })}
         </View>
 
-        <View
-          style={[st.row, { justifyContent: 'space-between', marginTop: 6 }]}
-        >
-          <Label>Vitals</Label>
-          <View style={[st.row, { gap: 12 }]}>
-            {PRESETS.map(p => (
-              <Text
-                key={p.name}
-                style={[st.small, { color: C.accent, fontWeight: '700' }]}
-                onPress={() => setV(p.vitals)}
-              >
-                {p.name}
-              </Text>
-            ))}
-          </View>
-        </View>
-        <Card style={{ paddingVertical: 4, gap: 0 }}>
+        <Section
+          title="Vitals"
+          right={
+            <View style={[st.row, { gap: 6 }]}>
+              {PRESETS.map(p => (
+                <Pressable
+                  key={p.name}
+                  onPress={() => setV(p.vitals)}
+                  hitSlop={6}
+                  style={{
+                    backgroundColor: C.surface,
+                    borderRadius: 6,
+                    paddingHorizontal: 9,
+                    paddingVertical: 5,
+                  }}
+                >
+                  <Text style={[st.label, { color: C.accent }]}>{p.name}</Text>
+                </Pressable>
+              ))}
+            </View>
+          }
+        />
+        <Card style={{ paddingVertical: 6, gap: 0 }}>
           {ROWS.map((r, i) => {
             const part = score.parts[r.key];
             return (
               <View key={r.key}>
                 {i > 0 && <View style={st.divider} />}
-                <View style={[st.row, { paddingVertical: 8 }]}>
+                <View style={[st.row, { paddingVertical: 10, gap: 12 }]}>
+                  <Icon icon={r.icon} color={C.accent} size={20} />
                   <View style={{ flex: 1 }}>
                     <Text style={st.body}>{r.label}</Text>
                     <Text
                       style={[
                         st.small,
-                        { fontSize: 12, color: part ? '#C2510F' : C.muted },
+                        { fontSize: 12.5, color: part ? C.orange : C.faint },
                       ]}
                     >
-                      {part ? `+${part} to score` : 'in range'}
+                      {part ? `+${part} to score` : 'In range'}
                     </Text>
                   </View>
                   <Step
-                    label="−"
+                    icon={Minus}
+                    label={`Lower ${r.label}`}
                     onPress={() =>
                       setV(x => ({
                         ...x,
@@ -175,23 +230,20 @@ export function VisitForm({ onDone }: { onDone: () => void }) {
                       }))
                     }
                   />
-                  <Text
-                    style={[
-                      st.num,
-                      {
-                        width: 92,
-                        textAlign: 'center',
-                        fontSize: 22,
-                        fontWeight: '700',
-                        color: C.ink,
-                      },
-                    ]}
-                  >
-                    {r.key === 'tempC' ? v[r.key].toFixed(1) : v[r.key]}
-                    <Text style={[st.small, { fontSize: 12 }]}> {r.unit}</Text>
-                  </Text>
+                  <View style={{ width: 70, alignItems: 'center' }}>
+                    <Text
+                      style={[
+                        st.num,
+                        { fontFamily: F.strong, fontSize: 21, color: C.ink },
+                      ]}
+                    >
+                      {r.key === 'tempC' ? v[r.key].toFixed(1) : v[r.key]}
+                    </Text>
+                    <Text style={[st.small, { fontSize: 11.5 }]}>{r.unit}</Text>
+                  </View>
                   <Step
-                    label="+"
+                    icon={Plus}
+                    label={`Raise ${r.label}`}
                     onPress={() =>
                       setV(x => ({
                         ...x,
@@ -204,17 +256,30 @@ export function VisitForm({ onDone }: { onDone: () => void }) {
             );
           })}
           <View style={st.divider} />
-          <View style={[st.row, { paddingVertical: 10 }]}>
-            <Text style={[st.body, { flex: 1 }]}>On supplemental oxygen</Text>
+          <View style={[st.row, { paddingVertical: 10, gap: 12 }]}>
+            <Icon icon={Wind} color={C.accent} size={20} />
+            <View style={{ flex: 1 }}>
+              <Text style={st.body}>On supplemental oxygen</Text>
+              <Text
+                style={[
+                  st.small,
+                  { fontSize: 12.5, color: v.onOxygen ? C.orange : C.faint },
+                ]}
+              >
+                {v.onOxygen ? '+2 to score' : 'Room air'}
+              </Text>
+            </View>
             <Switch
               value={v.onOxygen}
               onValueChange={onOxygen => setV(x => ({ ...x, onOxygen }))}
               trackColor={{ true: C.accent, false: C.line }}
+              thumbColor={C.surface}
+              ios_backgroundColor={C.line}
             />
           </View>
         </Card>
 
-        <Label>Consciousness (ACVPU)</Label>
+        <Section title="Alertness" />
         <View style={[st.row, { flexWrap: 'wrap', gap: 8 }]}>
           {ACVPU.map(a => {
             const on = v.consciousness === a.k;
@@ -222,18 +287,25 @@ export function VisitForm({ onDone }: { onDone: () => void }) {
               <Pressable
                 key={a.k}
                 onPress={() => setV(x => ({ ...x, consciousness: a.k }))}
+                accessibilityRole="radio"
+                accessibilityState={{ checked: on }}
                 style={[
-                  st.chip,
+                  st.pill,
                   {
-                    paddingVertical: 8,
+                    paddingVertical: 9,
                     paddingHorizontal: 12,
-                    backgroundColor: on ? C.ink : C.card,
+                    backgroundColor: on ? C.accent : C.surface,
                     borderWidth: 1,
-                    borderColor: on ? C.ink : C.line,
+                    borderColor: on ? C.accent : C.line,
                   },
                 ]}
               >
-                <Text style={[st.chipText, { color: on ? '#fff' : C.ink }]}>
+                <Text
+                  style={[
+                    st.pillText,
+                    { fontSize: 14, color: on ? '#FFFFFF' : C.ink },
+                  ]}
+                >
                   {a.label}
                 </Text>
               </Pressable>
@@ -241,12 +313,14 @@ export function VisitForm({ onDone }: { onDone: () => void }) {
           })}
         </View>
 
+        <View style={{ height: 6 }} />
         <Button
           title={
             patient
               ? `Save visit for ${patient.name.split(' ')[0]}`
-              : 'Choose a patient'
+              : 'Choose a patient to save'
           }
+          icon={Check}
           disabled={!patient}
           onPress={() => {
             if (!patient) return;
@@ -261,33 +335,39 @@ export function VisitForm({ onDone }: { onDone: () => void }) {
           }}
         />
         <Text style={[st.small, { textAlign: 'center' }]}>
-          Saved on this phone first. It travels to the clinic sealed, over any
-          phones in between.
+          Saved on this phone first, then carried to the clinic sealed, through
+          any phones in between.
         </Text>
-      </ScrollView>
+      </Scroll>
     </View>
   );
 }
 
-function Step({ label, onPress }: { label: string; onPress: () => void }) {
+function Step({
+  icon,
+  label,
+  onPress,
+}: {
+  icon: LucideIcon;
+  label: string;
+  onPress: () => void;
+}) {
   return (
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      accessibilityLabel={label === '+' ? 'Increase' : 'Decrease'}
+      accessibilityLabel={label}
       hitSlop={6}
       style={({ pressed }) => ({
-        width: 40,
-        height: 40,
-        borderRadius: 20,
+        width: 38,
+        height: 38,
+        borderRadius: 8,
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: pressed ? C.line : C.accentSoft,
+        backgroundColor: pressed ? C.line : C.sunken,
       })}
     >
-      <Text style={{ fontSize: 22, fontWeight: '600', color: C.accent }}>
-        {label}
-      </Text>
+      <Icon icon={icon} color={C.accent} size={18} />
     </Pressable>
   );
 }

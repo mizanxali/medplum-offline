@@ -21,9 +21,9 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle="dark-content" />
       {!loaded ? (
-        <View style={{ flex: 1, backgroundColor: C.band }} />
+        <View style={{ flex: 1, backgroundColor: C.bg }} />
       ) : s.role === 'clinic' ? (
         <Clinic />
       ) : s.role === 'chw' ? (

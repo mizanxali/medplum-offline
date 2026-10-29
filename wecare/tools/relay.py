@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""A Mac as the third phone: joins the CareRounds Bluetooth mesh as a relay only.
+"""A Mac as the third phone: joins the WeCare Bluetooth mesh as a relay only.
 
 It forwards sealed frames between the health worker and the clinic and prints
 each one it carries. It enrolls with no one and cannot read what it carries:

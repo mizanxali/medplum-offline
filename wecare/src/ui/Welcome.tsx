@@ -51,7 +51,7 @@ export function Welcome() {
 
   return (
     <View style={st.screen}>
-      <Header title="CareRounds" showStatus={false} />
+      <Header title="WeCare" showStatus={false} />
       <Scroll keyboardShouldPersistTaps="handled">
         <Text style={[st.body, { color: C.muted }]}>
           Home visits that reach the clinic with no signal. Phones pass sealed

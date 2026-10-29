@@ -1,4 +1,4 @@
-# CareRounds
+# WeCare
 
 Community health worker visits with no signal. A health worker records a
 home visit and gets an early-warning score on the phone. The record travels
@@ -8,6 +8,10 @@ phone holding it has internet.
 
 Built on [`@offline-protocol/mesh-sdk`](https://www.npmjs.com/package/@offline-protocol/mesh-sdk) 0.31,
 React Native 0.88. Patients are synthetic; no real person is behind any record.
+
+The project and its identifiers (the Xcode target, the bundle id, the mesh app
+id, the `urn:carerounds:*` FHIR systems) keep the app's first name, CareRounds,
+so installed phones and existing EHR records carry over.
 
 ## What it shows
 
@@ -92,7 +96,7 @@ runs Medplum itself, from the images Medplum publishes.
 1. Start it (Docker or OrbStack):
    `docker compose -f medplum/docker-compose.yml up -d`.
    The web app is at <http://localhost:3000>.
-2. In the web app, **Register**, create a project named *CareRounds*, then
+2. In the web app, **Register**, create a project named *WeCare*, then
    **Project Admin → Clients → New client**. Copy its ID and secret.
 3. `cp src/config.local.example.ts src/config.local.ts` and fill them in, with
    `baseUrl` set to `http://<this Mac's LAN IP>:8103/` (`ipconfig getifaddr en0`)
@@ -138,7 +142,7 @@ Physical phones only: simulators have no Bluetooth peers. Each phone needs
 Bluetooth on; Android asks for Bluetooth and location access, and for the
 camera before scanning. iOS asks for Bluetooth and local network access.
 
-Every SDK event is logged with the `[carerounds]` prefix, never with message
+Every SDK event is logged with the `[wecare]` prefix, never with message
 content (`adb logcat ReactNativeJS:V '*:S'`; `idevicesyslog -p CareRounds`).
 
 ## Checks

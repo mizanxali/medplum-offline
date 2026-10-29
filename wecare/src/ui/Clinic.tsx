@@ -155,7 +155,7 @@ export function Clinic() {
                   <Text style={st.small}>Waiting for the mesh…</Text>
                 )}
                 <Text style={[st.small, { textAlign: 'center' }]}>
-                  Scan this with CareRounds on the health worker's phone, close
+                  Scan this with WeCare on the health worker's phone, close
                   by. It carries this clinic's key, not a password.
                 </Text>
               </View>

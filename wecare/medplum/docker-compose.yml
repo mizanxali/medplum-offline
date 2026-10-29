@@ -1,4 +1,4 @@
-# Medplum, self-hosted for the CareRounds demo. Trimmed from Medplum's own
+# Medplum, self-hosted for the WeCare demo. Trimmed from Medplum's own
 # docker-compose.full-stack.yml: Postgres and Redis stay inside the compose
 # network instead of taking the host's 5432 and 6379.
 #

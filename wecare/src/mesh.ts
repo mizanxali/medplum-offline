@@ -16,6 +16,8 @@ import {
   type Synced,
 } from './state';
 
+// The app's first name, kept in identifiers (this, the FHIR systems, the
+// bundle id, the storage key) so installed phones and EHR records carry over.
 const APP_ID = 'carerounds';
 const INVITE_PREFIX = 'carerounds://enroll?c=';
 
@@ -65,7 +67,7 @@ async function requestPermissions() {
   const result = await PermissionsAndroid.requestMultiple(wanted);
   if (Object.values(result).some(r => r !== 'granted')) {
     throw new Error(
-      'CareRounds needs Bluetooth and location access to reach nearby phones.',
+      'WeCare needs Bluetooth and location access to reach nearby phones.',
     );
   }
 }
@@ -124,7 +126,7 @@ function onEvent(e: ProtocolEvent) {
   if (!QUIET.has(e.type)) {
     // Never the content: a visit carries patient data, and logs leave the app.
     const meta = JSON.stringify({ ...e, content: undefined });
-    console.log('[carerounds]', e.type, meta.slice(0, 300));
+    console.log('[wecare]', e.type, meta.slice(0, 300));
   }
   const s = getState();
   switch (e.type) {
@@ -194,7 +196,7 @@ function onWire(from: string, wire: Wire, hops: number) {
 function send(to: string, wire: Wire) {
   protocol
     ?.sendMessage({ recipient: to, content: JSON.stringify(wire) })
-    .catch(e => console.warn('[carerounds] send failed', message(e)));
+    .catch(e => console.warn('[wecare] send failed', message(e)));
 }
 
 // --- the periodic work: enrollment retries, resends, sync ---
@@ -211,7 +213,7 @@ function tick() {
           senderName: s.name,
           keyPackage: NO_KEY_PACKAGE,
         })
-        .catch(e => console.warn('[carerounds] enroll failed', message(e)));
+        .catch(e => console.warn('[wecare] enroll failed', message(e)));
     }
     if (s.enrolled) {
       const due = dueForResend(s, now);
@@ -242,7 +244,7 @@ export async function inviteCode(): Promise<string> {
 export async function enroll(scanned: string) {
   if (!protocol) throw new Error('The mesh is not running');
   if (!scanned.startsWith(INVITE_PREFIX))
-    throw new Error('That is not a CareRounds clinic code.');
+    throw new Error('That is not a WeCare clinic code.');
   // Throws on a forged or damaged code: the address must derive from the key it carries.
   const invite = await protocol.parseInvite(
     scanned.slice(INVITE_PREFIX.length),
@@ -268,7 +270,7 @@ export function accept(address: string) {
       accepterName: s.name,
       keyPackage: NO_KEY_PACKAGE,
     })
-    .catch(e => console.warn('[carerounds] accept failed', message(e)));
+    .catch(e => console.warn('[wecare] accept failed', message(e)));
   setState(x => ({
     ...x,
     requests: x.requests.filter(r => r.address !== address),

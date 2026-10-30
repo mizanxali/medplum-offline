@@ -222,7 +222,7 @@ protectedRoutes.use('/job', jobRouter);
  * This function will be executed on every request.
  * @returns The lazy initialized internal FHIR router.
  */
-function getInternalFhirRouter(): FhirRouter {
+export function getInternalFhirRouter(): FhirRouter {
   if (!internalFhirRouter) {
     internalFhirRouter = initInternalFhirRouter();
   }

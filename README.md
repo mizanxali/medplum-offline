@@ -1,130 +1,136 @@
-# [Medplum](https://www.medplum.com) &middot; [![GitHub license](https://img.shields.io/badge/license-Apache-blue.svg)](https://github.com/medplum/medplum/blob/main/LICENSE.txt) [![npm version](https://img.shields.io/npm/v/@medplum/core.svg?color=blue)](https://www.npmjs.com/package/@medplum/core) [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=medplum_medplum&metric=alert_status&token=207c95a43e7519809d6d336d8cc7837d3e057acf)](https://sonarcloud.io/dashboard?id=medplum_medplum) [![Coverage Status](https://coveralls.io/repos/github/medplum/medplum/badge.svg?branch=main)](https://coveralls.io/github/medplum/medplum?branch=main) [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/10900/badge?gold)](https://www.bestpractices.dev/projects/10900)
+<p align="center"><img src="wecare/ios/WeCare/Images.xcassets/AppIcon.appiconset/icon-1024.png" width="96" alt="WeCare app icon"></p>
+<h1 align="center">Medplum × Offline Protocol</h1>
+<p align="center"><b>The EHR, on the phones of people who work where there is no signal</b></p>
 
-![Medplum](packages/docs/static/img/cover.webp)
+This repository is a fork of [Medplum](https://github.com/medplum/medplum) 5.2, the open-source, FHIR-native EHR
+platform, with the **Offline Protocol SDK** brought into it. Community health workers visiting households far from
+the clinic keep working with no signal: they open their patients' charts, record visits and correct records on their
+phones. Every change is signed on the phone that made it and travels to the clinic over an encrypted Bluetooth mesh,
+through other health workers' phones if it has to. When any phone holding it gets online, it lands in Medplum exactly
+once, under the right author, with Medplum's own access policies deciding what is allowed.
 
-Medplum is a developer platform that enables flexible and rapid development of healthcare apps.
+The app is WeCare, in [`wecare/`](wecare/README.md). The server half lives in the Medplum server as three endpoints
+under `/offline`; the rest of Medplum is unchanged.
 
-- **Medplum Auth** - End-to-end identity solution for easy user authentication, sign-in, and permissions using OAuth, OpenID, and SMART-on-FHIR.
-- **Medplum Clinical Data Repository (CDR)** - Backend server that hosts your healthcare data in a secure, compliant, and standards-based repository.
-- **Medplum API** - FHIR-based API for sending, receiving, and manipulating data.
-- **Medplum SDK** - Client libraries that simplify the process of interacting with the **Medplum API**.
-- **Medplum App** - Web application where you can view your data and perform basic editing tasks. You can also use the Medplum App to manage basic workflows.
-- **Medplum Bots** - Write and run application logic server-side without needing to set up your own server.
-- **UI Component Library** - React components designed to help you quickly develop custom healthcare applications.
+## How it works
 
-To build an application with an AI agent, start with the [AI coding guide](https://www.medplum.com/docs/building-with-ai-coding-assistants)
-to connect Medplum's rules to your agent and plan with the decision guides.
+Every change made on a phone becomes a **signed record**: one FHIR R4 transaction, wrapped with an id and a time and
+signed by the phone's Ed25519 identity key, the same key its mesh address comes from. The phone keeps it, sends it to
+the clinic over the mesh, and shows it on the patient's chart straight away. Medplum applies it when any phone uploads
+it, as the practitioner who owns that key.
 
-## Docs
-
-- [Contributing](#contributing)
-  - [Ground Rules](#ground-rules)
-  - [Codebase](#codebase)
-    - [Technologies](#technologies)
-    - [Folder Structure](#folder-structure)
-
-## Contributing
-
-**We heartily welcome any and all contributions that match our engineering standards!**
-
-That being said, this codebase isn't your typical open-source project because it's not a library or package with a
-limited scope -- it's our entire product. Our [Contributing documentation](https://medplum.com/docs/contributing) has
-all the information you need to get started.
-
-### Ground Rules
-
-#### Contributions and discussion guidelines
-
-By making a contribution to this project, you are deemed to have accepted the [Developer Certificate of Origin](https://developercertificate.org/) (DCO).
-
-All conversations and communities on Medplum are expected to follow GitHub's [Community Guidelines](https://help.github.com/en/github/site-policy/github-community-guidelines)
-and [Acceptable Use Policies](https://help.github.com/en/github/site-policy/github-acceptable-use-policies). We expect
-discussions on issues and pull requests to stay positive, productive, and respectful. Remember: there are real people on
-the other side of the screen!
-
-#### Reporting a bug or proposing a new feature
-
-If you found a technical bug on Medplum or have ideas for features we should implement, the issue tracker is the best
-place to share with us. ([click here to open a new issue](https://github.com/medplum/medplum/issues/new))
-
-### Writing documentation or blog content
-
-Did you learn how to do something using Medplum that wasn't obvious on your first try? By contributing your new knowledge
-to our documentation, you can help others who might have a similar use case!
-
-Our documentation is hosted on [medplum.com/docs](https://www.medplum.com/docs), but it is built from [Markdown](https://www.markdownguide.org/)
-files in our [`docs` package](https://github.com/medplum/medplum/tree/main/packages/docs/docs).
-
-For relatively small changes, you can edit files directly from your web browser on [GitHub.dev](https://github.dev/medplum/medplum/blob/main/packages/docs/docs/home.md)
-without needing to clone the repository.
-
-#### Fixing a bug or implementing a new feature
-
-To keep new contributors focused on work we're ready to accept, code contributions go through an approval system: your
-Pull Request must be linked to an issue labeled `open-to-community` before we'll review it. This signals that a
-maintainer has explicitly invited community help on that issue. You can link a PR to an issue with a closing keyword
-in the PR description (e.g. `Fixes #123`) or via GitHub's Development panel. PRs that aren't linked to an
-`open-to-community` issue are automatically closed, but can be reopened once the link is added. Established
-contributors and Medplum team members are exempt from this requirement.
-
-If you find a bug, look for an existing issue labeled `open-to-community`, or open a new issue and ask us to label it,
-before starting work on a fix.
-
-If you want to implement a new feature, open an issue first to discuss with us how the feature might work, and to ensure
-it fits into our roadmap and plans for the app.
-
-If you want to contribute but are unsure how to start, we have [a "good first issue" label](https://github.com/medplum/medplum/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) which is applied to newcomer-friendly issues. Take a look at [the full list of good first issues](https://github.com/medplum/medplum/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) and pick something you like!
-
-**Ready to get started writing code?** Follow the [local setup instructions](https://www.medplum.com/docs/contributing/local-dev-setup) and jump in! See our [full contributing guide](https://www.medplum.com/docs/contributing#making-a-contribution) for more details on this process.
-
-### Codebase
-
-#### Technologies
-
-With the ground rules out of the way, let's talk about the coarse architecture of this mono repo:
-
-- **Full-stack TypeScript**: We use Node.js to power our servers, and React to power our frontend apps. Almost all of the code you'll touch in this codebase will be TypeScript.
-
-Here is a list of all the big technologies we use:
-
-- **PostgreSQL**: Data storage
-- **Redis**: Background jobs and caching
-- **Express**: API server
-- **TypeScript**: Type-safe JavaScript
-- **React**: Frontend React app
-
-#### Folder structure
-
-```sh
-medplum/
-├── packages
-│   ├── agent           # On-premise agent
-│   ├── app             # Frontend web app
-│   ├── bot-layer       # AWS Lambda Layer for Bots
-│   ├── cdk             # AWS CDK infra as code
-│   ├── cli             # Command line interface
-│   ├── core            # Core shared library
-│   ├── definitions     # Data definitions
-│   ├── docs            # Documentation
-│   ├── examples        # Example code used in documentation
-│   ├── fhir-router     # FHIR URL router
-│   ├── fhirtypes       # FHIR TypeScript definitions
-│   ├── generator       # Code generator utilities
-│   ├── graphiql        # Preconfigured GraphiQL
-│   ├── hl7             # HL7 client and server
-│   ├── mock            # Mock FHIR data for testing
-│   ├── react           # React component library
-│   ├── react-hooks     # React hooks library
-│   └── server          # Backend API server
-└── scripts             # Helper bash scripts
+```
+ Health worker's phone                 other phones         Clinic hub phone                     Medplum
+ chart offline, record, sign ─▶ store ─▶ BLE relay ══▶ verify ─▶ re-score ─▶ store
+                                          (MLS 1:1)           │
+        └──────────── when online: POST /offline/sync ────────┴──▶ verify signature, find practitioner,
+                                                                    apply as them, record Provenance
+        ◀──────────── panel over the mesh ◀── GET /offline/snapshot ◀── their patients, as their policy allows
 ```
 
-## Thanks
+The SDK provides the transport and the identity: BLE discovery and links, MLS-encrypted 1:1 messages, relaying
+through phones that can't read what they carry, store and forward, and a per-device Ed25519 key. Medplum provides the
+record: FHIR resources, versions, access policies and Provenance. The fork adds the part in between: who a phone
+belongs to, what a signed record means, and how it reaches Medplum.
 
-<a href="https://www.chromatic.com/"><img src="https://user-images.githubusercontent.com/321738/84662277-e3db4f80-af1b-11ea-88f5-91d67a5e59f6.png" width="153" height="30" alt="Chromatic" /></a>
+## Offline Protocol SDK integration
 
-Thanks to [Chromatic](https://www.chromatic.com/) for providing the visual testing platform that helps us review UI changes and catch visual regressions.
+| Need | SDK |
+|---|---|
+| A mesh with no infrastructure | `ProtocolConfig` with only the `ble` transport enabled |
+| Every phone helps carry records | `relay: { allowRelay: true, relayPriority: 'always' }` |
+| End-to-end encryption between enrolled phones | `initializeMlsWithSecureStorage()` and `encryption: { enabled, autoKeyExchange, storePending }` |
+| A phone identity Medplum can check | `getIdentityPublicKey()`; the `off1…` address is derived from that key, so the server checks the binding without trusting the phone |
+| Records signed by their author | `signData()` over the record's exact bytes |
+| Checking a record on another phone | `deriveAddress()` to tie the attached key to the sender, then `verifySignature()` |
+| Enrollment at the clinic | `createInvite()` and `parseInvite()` behind a QR code, then `sendConnectionRequest()`, `acceptConnectionRequest()` and `connection_accepted` |
+| Records, receipts and panels between phones | `sendMessage()` (MLS 1:1) and `message_received`, with `hop_count` to show how a record travelled |
+| Store, forward and relay | the SDK outbox and relay; `message_relayed` shows a phone what it carried for others, never the content |
+| Who is around | `neighbor_discovered` and `neighbor_lost` |
+
+## Medplum integration
+
+### Device identity
+- A phone's SDK address is self-certifying: bech32m with prefix `off` over `0x01 || SHA-256(public key)[0:20]`. The
+  server derives it from the key itself.
+- A device belongs to the Practitioner who carries it, as a `Practitioner.identifier` with system
+  `urn:offline-protocol:address`. One practitioner can have several phones. Revoking a phone means removing the
+  identifier, from the Medplum app like any other edit.
+- `POST /offline/devices` is the only endpoint that needs a Medplum sign-in. The phone signs in once (password,
+  PKCE), proves it holds the key by signing `offline-device-registration|Practitioner/<id>`, and the server binds the
+  address. Only Practitioners can register; an address already bound to someone else is refused with 409. The phone
+  keeps no password and no token afterwards.
+
+### Signed records, applied exactly once
+`POST /offline/sync` takes up to 50 envelopes and needs no bearer token: the signature is the authentication, so any
+phone, including the clinic hub or a relay, can hand in records it could not have forged.
+
+```ts
+type Envelope = { body: string; sig: string; key: string };
+// body = JSON.stringify({ id, created, bundle })  bundle: a FHIR R4 transaction
+// sig  = base64 Ed25519 over the UTF-8 bytes of body; key = base64 public key
+```
+
+For each envelope the server:
+1. checks the signature over `body` exactly as received, derives the address from `key`, and finds the
+   Practitioner bound to it and their active ProjectMembership;
+2. accepts only what merges safely: conditional creates (`ifNoneExist`) and versioned updates (`PUT` with `ifMatch`);
+   deletes, patches and anything else are refused;
+3. runs the transaction through Medplum's own batch processor **as that member**, under their access policy and
+   rate limits, so `meta.author` is the practitioner and a policy denial is a denial;
+4. appends a **Provenance** to the same transaction, so the writes and their record commit together or not at all.
+   It targets every written resource, names the practitioner and the phone as agents, and keeps the device's
+   signature, the signed body and the key. Its tag `urn:offline-protocol:envelope|<address>/<id>` is checked before
+   applying and on any failure, so a second copy, even one racing the first, comes back as a duplicate.
+
+| Result | Meaning | On the phone |
+|---|---|---|
+| `applied` | written, with its Provenance | *In EHR* |
+| `duplicate` | an earlier copy was applied | *In EHR, already there* |
+| `conflict` | an edit was made on a version the EHR has since moved past; nothing was written | shown to the user: **Keep mine** or **Use the EHR's** |
+| `rejected` | `bad_envelope`, `bad_signature`, `unknown_device`, `bad_bundle`, `forbidden` or Medplum's own validation reason | dropped |
+
+### The offline snapshot
+`GET /offline/snapshot` is signed too: the phone signs `offline-snapshot|<time>`, and the server refuses a time more
+than five minutes off. It returns, as the practitioner's access policy allows:
+- their panel: the Patients whose `generalPractitioner` includes them, with `meta.versionId` so edits can carry
+  `ifMatch`, and the Practitioners on those panels with their phone addresses;
+- each patient's active Conditions, AllergyIntolerances and MedicationStatements;
+- each patient's last three Encounters with their vital signs and NEWS2 Observations and the visit note.
+
+The panel is `Patient.generalPractitioner` rather than a CareTeam: it is the field FHIR already has for who looks
+after a patient, it needs one search, and the same reference drives the access policy
+(`Patient?general-practitioner=%profile`). The clinic is a practitioner on every patient's panel, so its snapshot
+covers the whole practice, and it uses the practitioners' addresses to give each enrolled health worker their own part
+over the mesh. Workers who never get signal still get fresh charts.
+
+### What a visit becomes
+An **Encounter** (class *home health*), a **vital signs Observation** whose components are the seven NEWS2 inputs
+with their LOINC codes, a **NEWS2 Observation** derived from it, and the note as a **DocumentReference** (LOINC
+*progress note*), each conditional on a stable identifier. A household correction is a `PUT` of the Patient with the
+version the phone saw.
+
+## Features
+
+- **The chart offline:** problems, allergies, medicines, recent visits and the last early-warning score for each of a
+  health worker's patients, on their phone, from the clinic over the mesh or straight from Medplum.
+- **Visits and notes with no signal:** vitals, an on-device NEWS2 score and next step, and a free-text note, signed
+  at the bedside.
+- **Edits that never overwrite:** a household correction applies only on the version the phone saw; otherwise both
+  values are shown and a person decides.
+- **A merged view:** every phone lays its own unsynced records over the last snapshot, so a chart is current on the
+  phone that changed it, and each unsynced item says so.
+- **No secrets on phones:** one sign-in registers the phone's key; after that the phone signs, and Medplum checks.
+- **Any phone can carry it home:** records relay through phones that can't read them, and whichever phone gets online
+  first uploads, without being able to change a byte.
+- **Exactly once, under the right name:** every record lands once, authored by the practitioner whose phone signed it,
+  with a Provenance holding that signature.
+- **Medplum's rules still apply:** each record runs under the author's access policy; a health worker reads and writes
+  only their own patients.
+- **Triage at the clinic:** the hub verifies each record against its sender's key, re-scores NEWS2 itself and lists
+  visits sickest first.
+- **Answers travel back:** the hub tells each health worker how their records landed in Medplum, over the mesh.
 
 ## License
 
-[Apache 2.0](LICENSE.txt)
+Apache 2.0, as Medplum. See [LICENSE.txt](LICENSE.txt).

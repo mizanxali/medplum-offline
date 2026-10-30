@@ -2,7 +2,7 @@
 # docker-compose.full-stack.yml: Postgres and Redis stay inside the compose
 # network instead of taking the host's 5432 and 6379.
 #
-# The server is this fork: Medplum 5.2.11 with the offline endpoints, built
+# The server is this fork: Medplum 5.2.12 with the offline endpoints, built
 # from packages/server/dist (cd packages/server && npm run build) and laid
 # over the official image.
 #
@@ -45,11 +45,11 @@ services:
       retries: 5
 
   medplum-server:
-    image: medplum-offline/medplum-server:5.2.11
+    image: medplum-offline/medplum-server:5.2.12
     build:
       context: ../../packages/server/dist
       dockerfile_inline: |
-        FROM medplum/medplum-server:5.2.11
+        FROM medplum/medplum-server:5.2.12
         COPY . /usr/src/medplum/packages/server/dist
     restart: unless-stopped
     depends_on:
@@ -93,7 +93,7 @@ services:
       retries: 5
 
   medplum-app:
-    image: medplum/medplum-app:5.2.11
+    image: medplum/medplum-app:5.2.12
     restart: unless-stopped
     depends_on:
       medplum-server:

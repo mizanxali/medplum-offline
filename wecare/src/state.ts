@@ -152,9 +152,12 @@ export function acknowledge(
   };
 }
 
-/** Records the clinic has not acknowledged and that have waited long enough to resend. */
+/** Records still on their way to Medplum that the clinic has not acknowledged, once the wait is up. */
 export const dueForResend = (s: State, now: number) =>
-  s.sent.filter(x => !x.delivered && now - x.lastSentAt >= RESEND_MS);
+  s.sent.filter(
+    x =>
+      !x.delivered && x.synced === 'pending' && now - x.lastSentAt >= RESEND_MS,
+  );
 
 const OUTCOME = {
   applied: 'added',

@@ -98,6 +98,11 @@ describe('health worker', () => {
       dueForResend(acknowledge(chw, 'off1clinic', 'e-1'), 1e12),
     ).toHaveLength(0);
   });
+
+  it('stops carrying a record once this phone has synced it itself', () => {
+    const synced = { ...chw, sent: [sent('e-1', { synced: 'added' })] };
+    expect(dueForResend(synced, RESEND_MS)).toHaveLength(0);
+  });
 });
 
 it("settles Medplum's answers: only a rejection is dropped", () => {

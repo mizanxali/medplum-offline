@@ -50,7 +50,9 @@ export const SIGNING_KEY_URL = 'urn:offline-protocol:signing-key';
 
 const MAX_ENVELOPES = 50;
 const MAX_BODY = 64 * 1024;
-const MAX_ENTRIES = 100;
+// Medplum runs a bundle with conditional creates in a serializable transaction of at most 8 entries;
+// the server adds one, the Provenance.
+const MAX_ENTRIES = 7;
 const SNAPSHOT_SKEW_MS = 5 * 60_000;
 const VISITS_PER_PATIENT = 3;
 
@@ -265,7 +267,7 @@ function bundleProblem(bundle: Bundle | undefined): string | undefined {
   }
   const entries = bundle.entry ?? [];
   if (!entries.length || entries.length > MAX_ENTRIES) {
-    return 'too many or too few entries';
+    return `between 1 and ${MAX_ENTRIES} entries`;
   }
   for (const entry of entries) {
     const { method, url = '', ifNoneExist, ifMatch } = entry.request ?? {};

@@ -50,6 +50,7 @@ import { maybeAutoRunPendingPostDeployMigrationOnAllShards } from './migrations/
 import { initKeys } from './oauth/keys';
 import { authenticateRequest } from './oauth/middleware';
 import { oauthRouter } from './oauth/routes';
+import { offlineRouter } from './offline/routes';
 import { openApiHandler } from './openapi';
 import { cleanupOtelHeartbeat, initOtelHeartbeat } from './otel/otel';
 import { closeRateLimiter, rateLimitHandler } from './ratelimit';
@@ -272,6 +273,7 @@ export async function initApp(app: Express, config: ServerConfig): Promise<http.
   apiRouter.use('/hub/', fhircastSTU3Router);
   apiRouter.use('/keyvalue/v1/', keyValueRouter);
   apiRouter.use('/oauth2/', oauthRouter);
+  apiRouter.use('/offline/', offlineRouter);
   apiRouter.use('/scim/v2/', scimRouter);
   apiRouter.use('/shl/', smartHealthLinkRouter);
   apiRouter.use('/webhook/', webhookRouter);

@@ -1,0 +1,25 @@
+{
+  "migIndex": 1,
+  "data": [
+    {
+      "path": "assets/fonts/HostGroteskLight-Medium.ttf",
+      "sha1": "4217ab0adde5431b0e6804d310b9844393215ba5"
+    },
+    {
+      "path": "assets/fonts/HostGroteskLight-Regular.ttf",
+      "sha1": "4d8562bcc9a2718a4118f6c348950a09891f6902"
+    },
+    {
+      "path": "assets/fonts/HostGroteskLight-SemiBold.ttf",
+      "sha1": "ef3e2c58a50cbdd05d8969c7ea13b311b5e8b979"
+    },
+    {
+      "path": "assets/fonts/Neuton-Bold.ttf",
+      "sha1": "5d46dbbf393e114f408720448d55a3467b0e0177"
+    },
+    {
+      "path": "assets/fonts/Neuton-Regular.ttf",
+      "sha1": "7710d0e37925d2a239df43c8ab816347d484d33b"
+    }
+  ]
+}

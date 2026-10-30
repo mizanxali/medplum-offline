@@ -12,16 +12,17 @@ import {
   type LucideIcon,
 } from 'lucide-react-native';
 import React, { useState } from 'react';
-import { Pressable, Switch, Text, View } from 'react-native';
+import { Alert, Pressable, Switch, Text, TextInput, View } from 'react-native';
 import {
   ACTION,
   news2,
   type Consciousness,
   type Vitals,
 } from '../domain/news2';
-import { newId, NORMAL, RANGES, ROSTER, type Patient } from '../domain/visit';
+import { householdOf, nameOf } from '../domain/panel';
+import { newId, NORMAL, NOTE_MAX, RANGES } from '../domain/visit';
 import { record } from '../mesh';
-import { useStore } from '../state';
+import { chart, useStore } from '../state';
 import {
   Button,
   C,
@@ -96,10 +97,19 @@ const ACVPU: { k: Consciousness; label: string }[] = [
 const clamp = (k: Numeric, v: number) =>
   Math.round(Math.min(RANGES[k][1], Math.max(RANGES[k][0], v)) * 10) / 10;
 
-export function VisitForm({ onDone }: { onDone: () => void }) {
+export function VisitForm({
+  onDone,
+  patientId,
+}: {
+  onDone: () => void;
+  patientId?: string;
+}) {
   const s = useStore();
-  const [patient, setPatient] = useState<Patient | null>(null);
+  const patients = chart(s);
+  const [chosen, setChosen] = useState<string | null>(patientId ?? null);
+  const patient = patients.find(p => p.resource.id === chosen) ?? null;
   const [v, setV] = useState<Vitals>(NORMAL);
+  const [note, setNote] = useState('');
   const score = news2(v);
   const risk = RISK[score.risk];
 
@@ -146,13 +156,19 @@ export function VisitForm({ onDone }: { onDone: () => void }) {
 
       <Scroll>
         <Section title="Patient" />
+        {patients.length === 0 && (
+          <Text style={st.small}>
+            No patients on this phone yet. They arrive from the clinic or from
+            Medplum.
+          </Text>
+        )}
         <View style={[st.row, { flexWrap: 'wrap', gap: 8 }]}>
-          {ROSTER.map(p => {
-            const on = patient?.id === p.id;
+          {patients.map(p => {
+            const on = chosen === p.resource.id;
             return (
               <Pressable
-                key={p.id}
-                onPress={() => setPatient(p)}
+                key={p.resource.id}
+                onPress={() => setChosen(p.resource.id)}
                 accessibilityRole="radio"
                 accessibilityState={{ checked: on }}
                 style={[
@@ -167,12 +183,12 @@ export function VisitForm({ onDone }: { onDone: () => void }) {
               >
                 <View style={[st.row, { gap: 6 }]}>
                   <Text style={[st.body, { fontFamily: F.medium }]}>
-                    {p.name}
+                    {nameOf(p.resource)}
                   </Text>
                   {on && <Icon icon={Check} color={C.accent} size={16} />}
                 </View>
                 <Text style={[st.small, { fontSize: 12.5 }]}>
-                  {p.household}
+                  {p.household || householdOf(p.resource)}
                 </Text>
               </Pressable>
             );
@@ -313,11 +329,25 @@ export function VisitForm({ onDone }: { onDone: () => void }) {
           })}
         </View>
 
+        <Section title="Note" />
+        <TextInput
+          value={note}
+          onChangeText={setNote}
+          placeholder="Optional: how they are, what you did, what to follow up"
+          placeholderTextColor={C.faint}
+          multiline
+          maxLength={NOTE_MAX}
+          accessibilityLabel="Visit note"
+          style={[st.input, { minHeight: 88, textAlignVertical: 'top' }]}
+        />
+
         <View style={{ height: 6 }} />
         <Button
           title={
             patient
-              ? `Save visit for ${patient.name.split(' ')[0]}`
+              ? `Sign and save visit for ${
+                  nameOf(patient.resource).split(' ')[0]
+                }`
               : 'Choose a patient to save'
           }
           icon={Check}
@@ -326,17 +356,22 @@ export function VisitForm({ onDone }: { onDone: () => void }) {
             if (!patient) return;
             record({
               id: newId(),
-              patient,
+              patientId: patient.resource.id,
               vitals: v,
               at: Date.now(),
-              chwName: s.name,
-            });
-            onDone();
+              by: s.practitioner?.display ?? s.name,
+              note: note.trim(),
+            }).then(onDone, e =>
+              Alert.alert(
+                'The visit was not saved',
+                e instanceof Error ? e.message : String(e),
+              ),
+            );
           }}
         />
         <Text style={[st.small, { textAlign: 'center' }]}>
-          Saved on this phone first, then carried to the clinic sealed, through
-          any phones in between.
+          Signed and saved on this phone first, then carried to the clinic
+          sealed, through any phones in between.
         </Text>
       </Scroll>
     </View>

@@ -1,14 +1,69 @@
-import { visitBundle, visitOutcome, SYSTEM } from '../src/domain/fhir';
+/// <reference types="node" />
+import {
+  createPublicKey,
+  generateKeyPairSync,
+  sign as edSign,
+  verify as edVerify,
+} from 'crypto';
+import {
+  openEnvelope,
+  signEnvelope,
+  type Signer,
+} from '../src/domain/envelope';
+import {
+  householdBundle,
+  readBundle,
+  SYSTEM,
+  visitBundle,
+} from '../src/domain/fhir';
 import { news2 } from '../src/domain/news2';
-import { NORMAL, parseWire, ROSTER, type Visit } from '../src/domain/visit';
+import {
+  ADDRESS_SYSTEM,
+  panelFor,
+  panelFromSnapshot,
+  parsePanel,
+} from '../src/domain/panel';
+import { NORMAL, parseWire, type Visit } from '../src/domain/visit';
 
 const visit: Visit = {
   id: 'v-1',
-  patient: ROSTER[0],
-  vitals: NORMAL,
-  at: 0,
-  chwName: 'Ada',
+  patientId: 'p-1',
+  vitals: { ...NORMAL, pulse: 112, tempC: 38.6 },
+  at: Date.parse('2026-10-30T09:00:00Z'),
+  by: 'Ada Wanjiru',
+  note: 'Fever since yesterday. Drinking well. Ünïcode ok.',
 };
+const ada = { reference: 'Practitioner/ada', display: 'Ada Wanjiru' };
+
+/** The SDK's identity, played by Node's Ed25519. */
+function phone(): Signer & { address: string } {
+  const { publicKey, privateKey } = generateKeyPairSync('ed25519');
+  const raw = [
+    ...publicKey.export({ format: 'der', type: 'spki' }).subarray(12),
+  ];
+  const derive = (k: number[]) =>
+    'off1' + Buffer.from(k).toString('hex').slice(0, 16);
+  return {
+    address: derive(raw),
+    signData: async d => [...edSign(null, Buffer.from(d), privateKey)],
+    verifySignature: async (k, d, sig) =>
+      edVerify(
+        null,
+        Buffer.from(d),
+        createPublicKey({
+          key: Buffer.concat([
+            Buffer.from('302a300506032b6570032100', 'hex'),
+            Buffer.from(k),
+          ]),
+          format: 'der',
+          type: 'spki',
+        }),
+        Buffer.from(sig),
+      ),
+    getIdentityPublicKey: async () => raw,
+    deriveAddress: async k => derive(k),
+  };
+}
 
 describe('news2', () => {
   it('scores normal adult vitals 0, low risk', () => {
@@ -50,69 +105,224 @@ describe('news2', () => {
 });
 
 describe('parseWire', () => {
-  it('round-trips a visit and an ack', () => {
-    expect(parseWire(JSON.stringify({ t: 'visit', visit }))).toEqual({
-      t: 'visit',
-      visit,
+  const env = { body: '{"id":"x"}', sig: 'c2ln', key: 'a2V5' };
+
+  it('round-trips a record and a receipt', () => {
+    expect(parseWire(JSON.stringify({ t: 'env', env }))).toEqual({
+      t: 'env',
+      env,
     });
     expect(parseWire('{"t":"ack","id":"v-1"}')).toEqual({
       t: 'ack',
       id: 'v-1',
     });
+    expect(
+      parseWire('{"t":"ack","id":"v-1","synced":"conflict","reason":"newer"}'),
+    ).toEqual({
+      t: 'ack',
+      id: 'v-1',
+      synced: 'conflict',
+      reason: 'newer',
+    });
   });
 
-  it('drops malformed or out-of-range content and extra fields', () => {
-    const bad = (patch: object) =>
-      parseWire(
-        JSON.stringify({
-          t: 'visit',
-          visit: { ...visit, vitals: { ...NORMAL, ...patch } },
-        }),
-      );
+  it('drops malformed content and extra fields', () => {
     expect(parseWire('not json')).toBeNull();
     expect(parseWire('{"t":"ack"}')).toBeNull();
-    expect(bad({ spo2: 140 })).toBeNull();
-    expect(bad({ pulse: '80' })).toBeNull();
-    expect(bad({ consciousness: 'X' })).toBeNull();
+    expect(
+      parseWire(JSON.stringify({ t: 'env', env: { ...env, sig: 5 } })),
+    ).toBeNull();
+    expect(parseWire('{"t":"visit","visit":{}}')).toBeNull();
     const extra = parseWire(
-      JSON.stringify({ t: 'visit', visit: { ...visit, evil: 1 } }),
+      JSON.stringify({ t: 'env', env: { ...env, evil: 1 } }),
     );
-    expect(extra && 'evil' in (extra as any).visit).toBe(false);
+    expect(extra && 'evil' in (extra as any).env).toBe(false);
+  });
+});
+
+describe('envelopes', () => {
+  it('opens only what the sender signed, byte for byte', async () => {
+    const ada = phone();
+    const eve = phone();
+    const env = await signEnvelope(ada, 'e-1', visitBundle(visit, null));
+    expect((await openEnvelope(eve, env, ada.address))?.id).toBe('e-1');
+    // Another phone's key, a changed body, or a body under someone else's name: refused.
+    expect(await openEnvelope(eve, env, eve.address)).toBeNull();
+    expect(
+      await openEnvelope(
+        eve,
+        { ...env, body: env.body.replace('112', '72') },
+        ada.address,
+      ),
+    ).toBeNull();
+    const forged = { ...env, key: (await signEnvelope(eve, 'e-1', {})).key };
+    expect(await openEnvelope(eve, forged, eve.address)).toBeNull();
   });
 });
 
 describe('visitBundle', () => {
-  const bundle = visitBundle(visit) as any;
+  const bundle = visitBundle(visit, ada) as any;
 
   it('makes every create conditional on a stable identifier', () => {
     for (const e of bundle.entry) {
       const [id] = e.resource.identifier;
+      expect(e.request.method).toBe('POST');
       expect(e.request.ifNoneExist).toBe(`identifier=${id.system}|${id.value}`);
     }
-    expect(bundle.entry[1].resource.identifier[0]).toEqual({
+    expect(bundle.entry[0].resource.identifier[0]).toEqual({
       system: SYSTEM.visit,
       value: 'v-1',
     });
   });
 
-  it('points observations at the bundle patient and encounter', () => {
-    const [patient, encounter, ...obs] = bundle.entry;
-    expect(obs).toHaveLength(8);
-    for (const o of obs) {
-      expect(o.resource.subject.reference).toBe(patient.fullUrl);
+  it('files the visit under the Medplum patient and the signing practitioner', () => {
+    const [encounter, ...rest] = bundle.entry;
+    expect(rest).toHaveLength(3); // vital signs, NEWS2 and the note
+    expect(encounter.resource.subject.reference).toBe('Patient/p-1');
+    expect(encounter.resource.participant[0].individual).toEqual(ada);
+    for (const o of rest.slice(0, 2)) {
       expect(o.resource.encounter.reference).toBe(encounter.fullUrl);
     }
-    expect(new Set(bundle.entry.map((e: any) => e.fullUrl)).size).toBe(
-      bundle.entry.length,
+    expect(rest[2].resource.context.encounter[0].reference).toBe(
+      encounter.fullUrl,
     );
+    expect(visitBundle({ ...visit, note: '' }, ada).entry).toHaveLength(3);
   });
 
-  it('reads the encounter status as added or duplicate', () => {
-    const response = (status: string) => ({
-      entry: [{}, { response: { status } }],
+  it('reads back exactly what it records', () => {
+    expect(readBundle(bundle)).toEqual({ visit });
+  });
+
+  it('edits a household only on the version the phone saw', () => {
+    const patient = {
+      resourceType: 'Patient',
+      id: 'p-1',
+      meta: { versionId: 'v7' },
+      name: [{ text: 'A' }],
+    };
+    const edit = householdBundle(patient, 'River Road 12') as any;
+    expect(edit.entry[0].request).toEqual({
+      method: 'PUT',
+      url: 'Patient/p-1',
+      ifMatch: 'W/"v7"',
     });
-    expect(visitOutcome(response('201 Created'))).toBe('added');
-    expect(visitOutcome(response('200 OK'))).toBe('duplicate');
-    expect(visitOutcome({})).toBeNull();
+    expect(edit.entry[0].resource.meta).toBeUndefined();
+    expect(readBundle(edit)).toEqual({
+      edit: { patientId: 'p-1', household: 'River Road 12', base: 'v7' },
+    });
+  });
+});
+
+describe('panels', () => {
+  // A snapshot as Medplum returns it: the signed visit, stored, plus the chart around it.
+  const snapshot = (encounterId: string) => {
+    const stored = (visitBundle(visit, ada) as any).entry.map((e: any) =>
+      JSON.parse(
+        JSON.stringify(e.resource).replace(
+          /urn:uuid:[0-9a-f-]+/g,
+          `Encounter/${encounterId}`,
+        ),
+      ),
+    );
+    const [encounter, ...others] = stored;
+    encounter.id = encounterId;
+    return {
+      entry: [
+        {
+          resource: {
+            resourceType: 'Patient',
+            id: 'p-1',
+            meta: { versionId: 'v7', lastUpdated: 'x' },
+            name: [{ text: 'Amina Okello' }],
+            address: [{ text: 'Hillside 4' }],
+            generalPractitioner: [
+              { reference: 'Practitioner/ada' },
+              { reference: 'Practitioner/clinic' },
+            ],
+          },
+        },
+        {
+          resource: {
+            resourceType: 'Practitioner',
+            id: 'ada',
+            identifier: [{ system: ADDRESS_SYSTEM, value: 'off1ada' }],
+          },
+        },
+        {
+          resource: {
+            resourceType: 'Condition',
+            subject: { reference: 'Patient/p-1' },
+            code: { text: 'Hypertension' },
+          },
+        },
+        {
+          resource: {
+            resourceType: 'Condition',
+            subject: { reference: 'Patient/p-1' },
+            code: { text: 'Old cough' },
+            clinicalStatus: { coding: [{ code: 'resolved' }] },
+          },
+        },
+        {
+          resource: {
+            resourceType: 'AllergyIntolerance',
+            patient: { reference: 'Patient/p-1' },
+            code: { text: 'Penicillin' },
+          },
+        },
+        {
+          resource: {
+            resourceType: 'MedicationStatement',
+            status: 'active',
+            subject: { reference: 'Patient/p-1' },
+            dosage: [{ text: 'Amlodipine 5 mg once daily' }],
+          },
+        },
+        { resource: encounter },
+        ...others.map((resource: any) => ({ resource })),
+      ],
+    };
+  };
+
+  it('turns a snapshot into a chart with recent visits', () => {
+    const panel = panelFromSnapshot(snapshot('e1'), 5);
+    expect(panel.at).toBe(5);
+    const [p] = panel.patients;
+    expect(p.resource.meta).toEqual({ versionId: 'v7' });
+    expect(p.problems).toEqual(['Hypertension']);
+    expect(p.allergies).toEqual(['Penicillin']);
+    expect(p.meds).toEqual(['Amlodipine 5 mg once daily']);
+    expect(p.visits).toEqual([visit]);
+    expect(panel.staff).toEqual([
+      { address: 'off1ada', practitioner: 'Practitioner/ada' },
+    ]);
+  });
+
+  it('gives each registered worker only their own patients', () => {
+    const panel = panelFromSnapshot(snapshot('e1'));
+    expect(panelFor(panel, 'off1ada')?.patients).toHaveLength(1);
+    expect(panelFor(panel, 'off1ada')?.staff).toEqual([]);
+    expect(panelFor(panel, 'off1eve')).toBeNull();
+  });
+
+  it('checks a panel from the mesh before the UI sees it', () => {
+    const panel = panelFromSnapshot(snapshot('e1'));
+    expect(
+      parsePanel(JSON.parse(JSON.stringify(panel)))?.patients,
+    ).toHaveLength(1);
+    expect(
+      parsePanel({
+        at: 1,
+        patients: [{ resource: { resourceType: 'Patient', id: 'x' } }],
+      })?.patients,
+    ).toEqual([]);
+    expect(parsePanel({ at: 'soon', patients: [] })).toBeNull();
+    const bad = JSON.parse(JSON.stringify(panel));
+    bad.patients[0].visits[0].vitals.spo2 = 400;
+    bad.patients[0].problems = ['ok', 7];
+    expect(parsePanel(bad)?.patients[0]).toMatchObject({
+      visits: [],
+      problems: ['ok'],
+    });
   });
 });

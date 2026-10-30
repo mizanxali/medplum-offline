@@ -1,23 +1,31 @@
 import type { Consciousness, Vitals } from './news2';
 
-export type Patient = {
-  id: string;
-  name: string;
-  sex: 'female' | 'male';
-  birthYear: number;
-  household: string;
-};
-
+/** One home visit, as its signed FHIR bundle records it. */
 export type Visit = {
   id: string;
-  patient: Patient;
+  patientId: string; // the Medplum Patient id
   vitals: Vitals;
   at: number; // ms since epoch, recorded by the health worker's phone
-  chwName: string;
+  by: string; // the health worker's name
+  note: string;
 };
 
-/** Mesh messages. Health worker to clinic: a visit. Clinic to health worker: its receipt. */
-export type Wire = { t: 'visit'; visit: Visit } | { t: 'ack'; id: string };
+/** A signed record: `body` is the exact signed JSON string `{ id, created, bundle }`. */
+export type Envelope = { body: string; sig: string; key: string };
+
+/**
+ * Mesh messages. Health worker to clinic: a signed record. Clinic to health
+ * worker: its receipt (and later what the EHR said), and the worker's panel.
+ */
+export type Wire =
+  | { t: 'env'; env: Envelope }
+  | {
+      t: 'ack';
+      id: string;
+      synced?: 'added' | 'duplicate' | 'conflict' | 'rejected';
+      reason?: string;
+    }
+  | { t: 'panel'; panel: unknown }; // checked by parsePanel
 
 /** Plausible ranges, used by the form steppers and to refuse garbage from the wire. */
 export const RANGES = {
@@ -27,6 +35,8 @@ export const RANGES = {
   pulse: [20, 220],
   tempC: [30, 43],
 } as const;
+
+export const NOTE_MAX = 1000;
 
 // ponytail: Math.random ids, unique enough for a demo; switch to
 // crypto.getRandomValues once Hermes ships it without a polyfill.
@@ -40,24 +50,16 @@ export function newId(): string {
   }${hex(3)}-${hex(12)}`;
 }
 
-const str = (v: unknown, max: number): v is string =>
+export const str = (v: unknown, max: number): v is string =>
   typeof v === 'string' && v.length > 0 && v.length <= max;
-const num = (v: unknown, [lo, hi]: readonly [number, number]): v is number =>
+export const num = (
+  v: unknown,
+  [lo, hi]: readonly [number, number],
+): v is number =>
   typeof v === 'number' && Number.isFinite(v) && v >= lo && v <= hi;
 const CONSCIOUSNESS: readonly Consciousness[] = ['A', 'C', 'V', 'P', 'U'];
 
-function isPatient(p: any): p is Patient {
-  return (
-    !!p &&
-    str(p.id, 64) &&
-    str(p.name, 80) &&
-    (p.sex === 'female' || p.sex === 'male') &&
-    num(p.birthYear, [1900, 2100]) &&
-    str(p.household, 80)
-  );
-}
-
-function isVitals(v: any): v is Vitals {
+export function isVitals(v: any): v is Vitals {
   return (
     !!v &&
     num(v.respRate, RANGES.respRate) &&
@@ -70,9 +72,12 @@ function isVitals(v: any): v is Vitals {
   );
 }
 
+const SYNCED = ['added', 'duplicate', 'conflict', 'rejected'] as const;
+
 /**
- * Parses a mesh message. The sender is an enrolled, MLS-authenticated phone,
- * but its content is still input: anything malformed is dropped, never repaired.
+ * Parses a mesh message. The sender is an MLS-authenticated phone, but its
+ * content is still input: anything malformed is dropped, never repaired.
+ * A record's own signature is checked separately (envelope.ts).
  */
 export function parseWire(content: string): Wire | null {
   let m: any;
@@ -81,89 +86,27 @@ export function parseWire(content: string): Wire | null {
   } catch {
     return null;
   }
-  if (m?.t === 'ack') return str(m.id, 64) ? { t: 'ack', id: m.id } : null;
-  if (m?.t !== 'visit') return null;
-  const v = m.visit;
-  const ok =
-    !!v &&
-    str(v.id, 64) &&
-    isPatient(v.patient) &&
-    isVitals(v.vitals) &&
-    num(v.at, [0, 8.64e15]) &&
-    str(v.chwName, 80);
-  return ok
-    ? {
-        t: 'visit',
-        visit: {
-          id: v.id,
-          patient: {
-            id: v.patient.id,
-            name: v.patient.name,
-            sex: v.patient.sex,
-            birthYear: v.patient.birthYear,
-            household: v.patient.household,
-          },
-          vitals: {
-            respRate: v.vitals.respRate,
-            spo2: v.vitals.spo2,
-            onOxygen: v.vitals.onOxygen,
-            systolic: v.vitals.systolic,
-            pulse: v.vitals.pulse,
-            consciousness: v.vitals.consciousness,
-            tempC: v.vitals.tempC,
-          },
-          at: v.at,
-          chwName: v.chwName,
-        },
-      }
-    : null;
+  if (m?.t === 'ack') {
+    if (!str(m.id, 64)) return null;
+    return {
+      t: 'ack',
+      id: m.id,
+      ...(SYNCED.includes(m.synced) && { synced: m.synced }),
+      ...(str(m.reason, 300) && { reason: m.reason }),
+    };
+  }
+  if (m?.t === 'env') {
+    const e = m.env;
+    const ok = str(e?.body, 64 * 1024) && str(e?.sig, 200) && str(e?.key, 100);
+    return ok
+      ? { t: 'env', env: { body: e.body, sig: e.sig, key: e.key } }
+      : null;
+  }
+  if (m?.t === 'panel' && m.panel) {
+    return { t: 'panel', panel: m.panel };
+  }
+  return null;
 }
-
-/** Synthetic households. No real person is behind any of these. */
-export const ROSTER: Patient[] = [
-  {
-    id: 'hh01-a',
-    name: 'Amina Okello',
-    sex: 'female',
-    birthYear: 1958,
-    household: 'Hillside 4',
-  },
-  {
-    id: 'hh01-b',
-    name: 'Joseph Okello',
-    sex: 'male',
-    birthYear: 1955,
-    household: 'Hillside 4',
-  },
-  {
-    id: 'hh02-a',
-    name: 'Grace Mwangi',
-    sex: 'female',
-    birthYear: 1990,
-    household: 'River Road 11',
-  },
-  {
-    id: 'hh03-a',
-    name: 'Peter Achieng',
-    sex: 'male',
-    birthYear: 1971,
-    household: 'Market Lane 2',
-  },
-  {
-    id: 'hh04-a',
-    name: 'Ruth Njeri',
-    sex: 'female',
-    birthYear: 1946,
-    household: 'Well Corner 7',
-  },
-  {
-    id: 'hh05-a',
-    name: 'Samuel Otieno',
-    sex: 'male',
-    birthYear: 1984,
-    household: 'School Path 3',
-  },
-];
 
 /** Normal adult vitals: the form's starting point. */
 export const NORMAL: Vitals = {

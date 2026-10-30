@@ -1,61 +1,112 @@
-import type { MedplumConfig } from '../config';
-import { visitBundle, visitOutcome } from '../domain/fhir';
-import type { Visit } from '../domain/visit';
+import { bytesToBase64, sign, type Signer } from '../domain/envelope';
+import type { Ref } from '../domain/fhir';
+import { newId, type Envelope } from '../domain/visit';
 
-let token: { value: string; until: number } | null = null;
+export type SyncResult = {
+  id?: string;
+  status: 'applied' | 'duplicate' | 'conflict' | 'rejected';
+  reason?: string;
+};
 
-async function accessToken(c: MedplumConfig): Promise<string> {
-  if (token && Date.now() < token.until) return token.value;
-  const res = await fetch(new URL('oauth2/token', c.baseUrl).toString(), {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: [
-      'grant_type=client_credentials',
-      `client_id=${encodeURIComponent(c.clientId)}`,
-      `client_secret=${encodeURIComponent(c.clientSecret)}`,
-    ].join('&'),
-  });
-  if (!res.ok) throw new Error(`Medplum sign-in failed (${res.status})`);
-  const body = await res.json();
-  // Renew a minute early so a token never expires mid-request.
-  token = {
-    value: body.access_token,
-    until: Date.now() + (body.expires_in - 60) * 1000,
-  };
-  return token.value;
-}
+const url = (base: string, path: string) => new URL(path, base).toString();
 
-/**
- * Writes one visit as a FHIR transaction. Safe to repeat: every create is
- * conditional, so a second push, from this phone or another, is a duplicate.
- */
-export async function pushVisit(
-  c: MedplumConfig,
-  visit: Visit,
-): Promise<'added' | 'duplicate'> {
-  const res = await fetch(new URL('fhir/R4', c.baseUrl).toString(), {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/fhir+json',
-      Authorization: `Bearer ${await accessToken(c)}`,
-    },
-    body: JSON.stringify(visitBundle(visit)),
-  });
-  if (res.status === 401) token = null;
-  const body = await res.json().catch(() => null);
+async function json(res: Response, what: string): Promise<any> {
+  const body: any = await res.json().catch(() => null);
   if (!res.ok) {
     const why =
-      body?.issue?.[0]?.details?.text ?? body?.issue?.[0]?.diagnostics;
-    throw new Error(
-      `Medplum refused the visit (${res.status}${why ? `: ${why}` : ''})`,
-    );
+      body?.issue?.[0]?.details?.text ??
+      body?.issue?.[0]?.diagnostics ??
+      body?.error_description;
+    throw new Error(`${what} (${res.status}${why ? `: ${why}` : ''})`);
   }
-  const outcome = visitOutcome(body);
-  if (!outcome) throw new Error('Medplum answered with an unexpected bundle');
-  return outcome;
+  return body;
 }
 
-/** Test hook: forget the cached token. */
-export const resetToken = () => {
-  token = null;
-};
+const post = (base: string, path: string, body: unknown, headers = {}) =>
+  fetch(url(base, path), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...headers },
+    body: JSON.stringify(body),
+  });
+
+/**
+ * One-time sign-in that binds this phone's key to the user's Practitioner.
+ * The password and the token are used here and dropped; the phone keeps only
+ * the Practitioner reference.
+ */
+export async function register(
+  base: string,
+  signer: Signer,
+  email: string,
+  password: string,
+): Promise<Ref> {
+  // Medplum wants PKCE; plain is enough when the verifier never leaves this call.
+  const verifier = newId() + newId();
+  const { code } = await json(
+    await post(base, 'auth/login', {
+      email,
+      password,
+      scope: 'openid',
+      codeChallenge: verifier,
+      codeChallengeMethod: 'plain',
+    }),
+    'Sign-in refused',
+  );
+  if (!code)
+    throw new Error(
+      'This account needs to choose a project. Use a WeCare account.',
+    );
+  const token = await json(
+    await fetch(url(base, 'oauth2/token'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: `grant_type=authorization_code&code=${encodeURIComponent(
+        code,
+      )}&code_verifier=${verifier}`,
+    }),
+    'Sign-in refused',
+  );
+  const profile: string = token.profile?.reference ?? '';
+  if (!profile.startsWith('Practitioner/'))
+    throw new Error('Only practitioners can register a phone.');
+  const res = await json(
+    await post(
+      base,
+      'offline/devices',
+      {
+        publicKey: bytesToBase64(await signer.getIdentityPublicKey()),
+        signature: await sign(signer, `offline-device-registration|${profile}`),
+      },
+      { Authorization: `Bearer ${token.access_token}` },
+    ),
+    'Medplum refused this phone',
+  );
+  return res.practitioner;
+}
+
+/** Hands signed records to Medplum. No credentials: each one's signature is its authority. */
+export async function syncEnvelopes(
+  base: string,
+  envelopes: Envelope[],
+): Promise<SyncResult[]> {
+  const body = await json(
+    await post(base, 'offline/sync', { envelopes }),
+    'Medplum refused the upload',
+  );
+  return body.results;
+}
+
+/** This phone's panel as Medplum's access policy lets its practitioner see it. */
+export async function fetchSnapshot(base: string, signer: Signer) {
+  const time = new Date().toISOString();
+  return json(
+    await fetch(url(base, 'offline/snapshot'), {
+      headers: {
+        'X-Offline-Key': bytesToBase64(await signer.getIdentityPublicKey()),
+        'X-Offline-Time': time,
+        'X-Offline-Signature': await sign(signer, `offline-snapshot|${time}`),
+      },
+    }),
+    'Medplum refused the snapshot',
+  );
+}

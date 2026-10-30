@@ -12,7 +12,7 @@ import { Alert, Pressable, Text, View } from 'react-native';
 import QRCode from 'react-native-qrcode-svg';
 import { news2, type Risk } from '../domain/news2';
 import { accept, decline, inviteCode, resetDemo } from '../mesh';
-import { useStore } from '../state';
+import { chart, useStore } from '../state';
 import {
   Button,
   C,
@@ -27,6 +27,7 @@ import {
   short,
   st,
 } from './kit';
+import { PatientList, PatientScreen } from './Patients';
 import { CarriedCard, SyncCard, SyncedPill } from './shared';
 import { VisitCard } from './VisitCard';
 
@@ -41,17 +42,23 @@ export function Clinic() {
   const s = useStore();
   const [code, setCode] = useState('');
   const [showCode, setShowCode] = useState(s.workers.length === 0);
+  const [open, setOpen] = useState<string | null>(null);
 
   useEffect(() => {
     if (s.status === 'on' && !code) inviteCode().then(setCode, () => {});
   }, [s.status, code]);
 
-  // Sickest first, then newest.
-  const visits = [...s.received].sort(
-    (a, b) =>
-      SEVERITY[news2(b.visit.vitals).risk] -
-        SEVERITY[news2(a.visit.vitals).risk] || b.receivedAt - a.receivedAt,
-  );
+  if (open) return <PatientScreen id={open} onBack={() => setOpen(null)} />;
+
+  // Sickest first, then newest. Scored here from the signed vitals, never taken from the sender.
+  const patients = chart(s);
+  const visits = s.received
+    .filter(r => r.visit)
+    .sort(
+      (a, b) =>
+        SEVERITY[news2(b.visit!.vitals).risk] -
+          SEVERITY[news2(a.visit!.vitals).risk] || b.receivedAt - a.receivedAt,
+    );
   const workerName = (a: string) =>
     s.workers.find(w => w.address === a)?.name ?? short(a);
 
@@ -66,7 +73,7 @@ export function Clinic() {
             onPress={() =>
               Alert.alert(
                 'Reset this phone?',
-                'Clears enrolled workers and received visits.',
+                'Clears enrolled workers, the sign-in and received records.',
                 [
                   { text: 'Cancel', style: 'cancel' },
                   { text: 'Reset', style: 'destructive', onPress: resetDemo },
@@ -155,8 +162,8 @@ export function Clinic() {
                   <Text style={st.small}>Waiting for the mesh…</Text>
                 )}
                 <Text style={[st.small, { textAlign: 'center' }]}>
-                  Scan this with WeCare on the health worker's phone, close
-                  by. It carries this clinic's key, not a password.
+                  Scan this with WeCare on the health worker's phone, close by.
+                  It carries this clinic's key, not a password.
                 </Text>
               </View>
             )}
@@ -175,8 +182,9 @@ export function Clinic() {
         )}
         {visits.map(r => (
           <VisitCard
-            key={r.visit.id}
-            visit={r.visit}
+            key={r.id}
+            visit={r.visit!}
+            patient={patients.find(p => p.resource.id === r.visit!.patientId)}
             footer={
               <View
                 style={[
@@ -207,6 +215,8 @@ export function Clinic() {
             }
           />
         ))}
+
+        <PatientList onOpen={setOpen} />
 
         <Section title="Electronic health record" />
         <SyncCard

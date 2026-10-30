@@ -3,21 +3,35 @@ import OfflineProtocol, {
   type ProtocolEvent,
 } from '@offline-protocol/mesh-sdk';
 import { PermissionsAndroid, Platform } from 'react-native';
-import { MEDPLUM } from './config';
-import { parseWire, type Visit, type Wire } from './domain/visit';
-import { pushVisit } from './services/medplum';
+import { MEDPLUM_URL } from './config';
+import { openEnvelope, signEnvelope } from './domain/envelope';
+import { householdBundle, readBundle, visitBundle } from './domain/fhir';
+import { panelFor, panelFromSnapshot, parsePanel } from './domain/panel';
+import { newId, parseWire, type Visit, type Wire } from './domain/visit';
+import {
+  fetchSnapshot,
+  register,
+  syncEnvelopes,
+  type SyncResult,
+} from './services/medplum';
 import {
   acknowledge,
   carry,
   dueForResend,
   getState,
-  receiveVisit,
+  receive,
   setState,
-  type Synced,
+  settle,
+  takePanel,
+  type ChartPatient,
+  type Rec,
 } from './state';
 
 const APP_ID = 'wecare';
 const INVITE_PREFIX = 'wecare://enroll?c=';
+const SNAPSHOT_MS = 5 * 60_000;
+const SYNC_MS = 15_000;
+const SYNC_BATCH = 50;
 
 // Bluetooth only. Every phone relays for the others, whatever its battery,
 // because a health worker between two others is how a record gets home.
@@ -45,10 +59,16 @@ let protocol: OfflineProtocol | null = null;
 let ticker: ReturnType<typeof setInterval> | null = null;
 let syncing = false;
 let lastSyncAt = 0;
+let lastSnapshotAt = 0;
 let lastEnrollAt = 0;
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
 const pause = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
+
+function mesh(): OfflineProtocol {
+  if (!protocol) throw new Error('The mesh is not running');
+  return protocol;
+}
 
 async function requestPermissions() {
   if (Platform.OS !== 'android') return;
@@ -122,7 +142,7 @@ const QUIET = new Set([
 
 function onEvent(e: ProtocolEvent) {
   if (!QUIET.has(e.type)) {
-    // Never the content: a visit carries patient data, and logs leave the app.
+    // Never the content: records carry patient data, and logs leave the app.
     const meta = JSON.stringify({ ...e, content: undefined });
     console.log('[wecare]', e.type, meta.slice(0, 300));
   }
@@ -179,15 +199,36 @@ function onEvent(e: ProtocolEvent) {
   }
 }
 
-function onWire(from: string, wire: Wire, hops: number) {
+async function onWire(from: string, wire: Wire, hops: number) {
   const s = getState();
-  if (wire.t === 'ack' && s.role === 'chw') {
-    setState(x => acknowledge(x, from, wire.id));
+  if (s.role === 'chw' && from === s.clinic?.address) {
+    if (wire.t === 'ack') {
+      setState(x => acknowledge(x, from, wire.id, wire.synced, wire.reason));
+    }
+    if (wire.t === 'panel') {
+      const panel = parsePanel(wire.panel);
+      if (panel) setState(x => takePanel(x, panel));
+    }
   }
-  if (wire.t === 'visit' && s.role === 'clinic') {
+  if (wire.t === 'env' && s.role === 'clinic' && protocol) {
     if (!s.workers.some(w => w.address === from)) return; // not enrolled here
-    setState(x => receiveVisit(x, from, wire.visit, hops, Date.now()));
-    send(from, { t: 'ack', id: wire.visit.id }); // acknowledge repeats too: the first ack may be lost
+    // The sender's own key must have signed it, byte for byte.
+    const body = await openEnvelope(protocol, wire.env, from);
+    if (!body) return;
+    const rec: Rec = {
+      id: body.id,
+      env: wire.env,
+      ...readBundle(body.bundle),
+      synced: 'pending',
+    };
+    setState(x => receive(x, from, rec, hops, Date.now()));
+    // Acknowledge repeats too (the first ack may be lost), with Medplum's answer once there is one.
+    const known = getState().received.find(r => r.id === body.id);
+    send(from, {
+      t: 'ack',
+      id: body.id,
+      ...(known && known.synced !== 'pending' && { synced: known.synced }),
+    });
   }
 }
 
@@ -195,6 +236,14 @@ function send(to: string, wire: Wire) {
   protocol
     ?.sendMessage({ recipient: to, content: JSON.stringify(wire) })
     .catch(e => console.warn('[wecare] send failed', message(e)));
+}
+
+/** Clinic: gives a worker the part of its panel that is theirs, sealed for them alone. */
+function sendPanel(address: string) {
+  const { panel, role } = getState();
+  if (role !== 'clinic' || !panel) return;
+  const theirs = panelFor(panel, address);
+  if (theirs) send(address, { t: 'panel', panel: theirs });
 }
 
 // --- the periodic work: enrollment retries, resends, sync ---
@@ -215,38 +264,36 @@ function tick() {
     }
     if (s.enrolled) {
       const due = dueForResend(s, now);
-      due.forEach(x => send(s.clinic!.address, { t: 'visit', visit: x.visit }));
+      due.forEach(x => send(s.clinic!.address, { t: 'env', env: x.env }));
       if (due.length) {
-        const ids = new Set(due.map(x => x.visit.id));
+        const ids = new Set(due.map(x => x.id));
         setState(x => ({
           ...x,
           sent: x.sent.map(v =>
-            ids.has(v.visit.id) ? { ...v, lastSentAt: now } : v,
+            ids.has(v.id) ? { ...v, lastSentAt: now } : v,
           ),
         }));
       }
     }
   }
-  if (MEDPLUM && now - lastSyncAt > 15_000 && pending().length) sync();
+  if (MEDPLUM_URL && s.practitioner && now - lastSyncAt > SYNC_MS) {
+    if (pending().length || now - lastSnapshotAt > SNAPSHOT_MS) sync();
+  }
 }
 
 // --- actions ---
 
 export async function inviteCode(): Promise<string> {
-  if (!protocol) throw new Error('The mesh is not running');
   return (
-    INVITE_PREFIX + (await protocol.createInvite(getState().name.slice(0, 40)))
+    INVITE_PREFIX + (await mesh().createInvite(getState().name.slice(0, 40)))
   );
 }
 
 export async function enroll(scanned: string) {
-  if (!protocol) throw new Error('The mesh is not running');
   if (!scanned.startsWith(INVITE_PREFIX))
     throw new Error('That is not a WeCare clinic code.');
   // Throws on a forged or damaged code: the address must derive from the key it carries.
-  const invite = await protocol.parseInvite(
-    scanned.slice(INVITE_PREFIX.length),
-  );
+  const invite = await mesh().parseInvite(scanned.slice(INVITE_PREFIX.length));
   setState(s => ({
     ...s,
     clinic: { address: invite.address, name: invite.petname || 'Clinic' },
@@ -276,6 +323,8 @@ export function accept(address: string) {
       ? x.workers
       : [...x.workers, peer],
   }));
+  // Give the encrypted session a moment before the first message on it.
+  setTimeout(() => sendPanel(address), 5_000);
 }
 
 export function decline(address: string) {
@@ -286,65 +335,132 @@ export function decline(address: string) {
   }));
 }
 
-export function record(visit: Visit) {
+/** Signs a record now, at the bedside; every hop after this carries it untouched. */
+async function keep(bundle: unknown) {
+  const id = newId();
+  const env = await signEnvelope(mesh(), id, bundle);
   // lastSentAt 0: the next tick sends it if the phone is enrolled.
   setState(s => ({
     ...s,
     sent: [
-      { visit, lastSentAt: 0, delivered: false, synced: 'pending' as Synced },
+      {
+        id,
+        env,
+        ...readBundle(bundle),
+        synced: 'pending',
+        lastSentAt: 0,
+        delivered: false,
+      },
       ...s.sent,
     ],
   }));
   tick();
 }
 
-function pending(): Visit[] {
-  const s = getState();
-  const list = s.role === 'clinic' ? s.received : s.sent;
-  return list.filter(x => x.synced === 'pending').map(x => x.visit);
-}
+export const record = (visit: Visit) =>
+  keep(visitBundle(visit, getState().practitioner));
 
-function markSynced(id: string, synced: Synced) {
+export const editHousehold = (p: ChartPatient, household: string) =>
+  keep(householdBundle(p.resource, household));
+
+/** Lets a record go: "use the EHR's" on a conflict, or dismissing one at the clinic. */
+export function drop(id: string) {
   setState(s => ({
     ...s,
-    sent: s.sent.map(x => (x.visit.id === id ? { ...x, synced } : x)),
-    received: s.received.map(x => (x.visit.id === id ? { ...x, synced } : x)),
+    sent: s.sent.filter(x => x.id !== id),
+    received: s.received.filter(x => x.id !== id),
   }));
 }
 
-/** Pushes every pending visit to Medplum. A failure stops the run; the next one retries. */
+/** "Keep mine" on a conflict: the same change again, on the version Medplum has now. */
+export async function keepMine(p: ChartPatient) {
+  const edit = p.edit;
+  if (!edit?.edit) return;
+  drop(edit.id);
+  await editHousehold(p, edit.edit.household);
+}
+
+export async function signIn(email: string, password: string) {
+  if (!MEDPLUM_URL)
+    throw new Error('No Medplum server in this build (see README).');
+  const practitioner = await register(
+    MEDPLUM_URL,
+    mesh(),
+    email.trim(),
+    password,
+  );
+  setState(s => ({ ...s, practitioner, syncNote: '' }));
+  lastSnapshotAt = 0;
+  sync();
+}
+
+function pending(): Rec[] {
+  const s = getState();
+  const list: Rec[] = s.role === 'clinic' ? s.received : s.sent;
+  return list.filter(x => x.synced === 'pending');
+}
+
+function summary(results: SyncResult[]): string {
+  const count = (k: SyncResult['status']) =>
+    results.filter(r => r.status === k).length;
+  const refused = results.find(r => r.status === 'rejected');
+  return [
+    count('applied') && `${count('applied')} added`,
+    count('duplicate') && `${count('duplicate')} already there`,
+    count('conflict') && `${count('conflict')} changed in the EHR meanwhile`,
+    refused && `${count('rejected')} refused (${refused.reason})`,
+  ]
+    .filter(Boolean)
+    .join(', ');
+}
+
+/** Pushes signed records to Medplum, then refreshes the snapshot. A failure stops the run; the next tick retries. */
 export async function sync() {
   if (syncing) return;
-  if (!MEDPLUM) {
-    setState(s => ({
-      ...s,
-      syncNote: 'No Medplum credentials in this build (see README).',
+  const s = getState();
+  if (!MEDPLUM_URL || !s.practitioner) {
+    setState(x => ({
+      ...x,
+      syncNote: MEDPLUM_URL
+        ? 'Sign in to Medplum once to register this phone.'
+        : 'No Medplum server in this build (see README).',
     }));
     return;
   }
   syncing = true;
   lastSyncAt = Date.now();
-  let added = 0;
-  let duplicate = 0;
   try {
-    for (const visit of pending()) {
-      const outcome = await pushVisit(MEDPLUM, visit);
-      markSynced(visit.id, outcome);
-      if (outcome === 'added') added++;
-      else duplicate++;
+    const batch = pending().slice(0, SYNC_BATCH);
+    if (batch.length) {
+      const results = await syncEnvelopes(
+        MEDPLUM_URL,
+        batch.map(r => r.env),
+      );
+      setState(x => ({
+        ...settle(x, results),
+        syncNote: `Medplum: ${summary(results)}`,
+      }));
+      if (s.role === 'clinic') {
+        // Tell each worker what Medplum said, so phones that never get signal hear it too.
+        for (const r of results) {
+          const rec = s.received.find(x => x.id === r.id);
+          const synced = r.status === 'applied' ? 'added' : r.status;
+          if (rec)
+            send(rec.from, { t: 'ack', id: rec.id, synced, reason: r.reason });
+        }
+      }
     }
-    const parts = [
-      added && `${added} added`,
-      duplicate && `${duplicate} already in the EHR`,
-    ].filter(Boolean);
-    setState(s => ({
-      ...s,
-      syncNote: parts.length ? `Medplum: ${parts.join(', ')}` : s.syncNote,
-    }));
+    if (Date.now() - lastSnapshotAt > SNAPSHOT_MS || batch.length) {
+      const panel = panelFromSnapshot(await fetchSnapshot(MEDPLUM_URL, mesh()));
+      lastSnapshotAt = Date.now();
+      setState(x => takePanel(x, panel));
+      if (s.role === 'clinic')
+        getState().workers.forEach(w => sendPanel(w.address));
+    }
   } catch (e) {
     const offline = e instanceof TypeError; // fetch's network failure
-    setState(s => ({
-      ...s,
+    setState(x => ({
+      ...x,
       syncNote: offline ? 'No internet. Will retry on its own.' : message(e),
     }));
   } finally {
@@ -359,6 +475,8 @@ export async function resetDemo() {
     role: null,
     clinic: null,
     enrolled: false,
+    practitioner: null,
+    panel: null,
     sent: [],
     workers: [],
     requests: [],

@@ -10,11 +10,22 @@ import {
 import React from 'react';
 import { Text, View } from 'react-native';
 import { news2 } from '../domain/news2';
+import { bornOf, householdOf, nameOf } from '../domain/panel';
 import type { Visit } from '../domain/visit';
+import type { ChartPatient } from '../state';
 import { C, Card, F, Icon, RiskPill, st } from './kit';
 
-const age = (birthYear: number, at: number) =>
-  new Date(at).getFullYear() - birthYear;
+/** "Female, 66 · Hillside 4" from a Patient, with this phone's unsynced household if any. */
+export function about(p: ChartPatient, at = Date.now()) {
+  const sex =
+    { female: 'Female', male: 'Male' }[p.resource.gender as string] ??
+    'Sex unknown';
+  const born = bornOf(p.resource);
+  const age = Number.isFinite(born)
+    ? `, ${new Date(at).getFullYear() - born}`
+    : '';
+  return `${sex}${age} · ${p.household || householdOf(p.resource)}`;
+}
 
 const ACVPU = {
   A: 'Alert',
@@ -27,10 +38,12 @@ const ACVPU = {
 /** One visit as a chart row. The score is recomputed here, never taken from the sender. */
 export function VisitCard({
   visit,
+  patient,
   footer,
 }: {
   visit: Visit;
-  footer: React.ReactNode;
+  patient?: ChartPatient;
+  footer?: React.ReactNode;
 }) {
   const v = visit.vitals;
   const score = news2(v);
@@ -46,10 +59,18 @@ export function VisitCard({
     <Card>
       <View style={[st.row, { gap: 10, alignItems: 'flex-start' }]}>
         <View style={{ flex: 1 }}>
-          <Text style={st.title}>{visit.patient.name}</Text>
+          <Text style={st.title}>
+            {patient ? nameOf(patient.resource) : 'Patient not on this phone'}
+          </Text>
           <Text style={st.small}>
-            {visit.patient.sex === 'female' ? 'Female' : 'Male'},{' '}
-            {age(visit.patient.birthYear, visit.at)} · {visit.patient.household}
+            {patient ? `${about(patient, visit.at)} · ` : ''}
+            {new Date(visit.at).toLocaleString([], {
+              day: 'numeric',
+              month: 'short',
+              hour: '2-digit',
+              minute: '2-digit',
+            })}
+            {visit.by ? `, ${visit.by}` : ''}
           </Text>
         </View>
         <RiskPill risk={score.risk} total={score.total} />
@@ -76,6 +97,9 @@ export function VisitCard({
           </View>
         ))}
       </View>
+      {!!visit.note && (
+        <Text style={[st.body, { color: C.muted }]}>{visit.note}</Text>
+      )}
       {footer}
     </Card>
   );

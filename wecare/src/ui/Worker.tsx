@@ -21,7 +21,7 @@ import {
 import { Camera, CameraType } from 'react-native-camera-kit';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { enroll, resetDemo } from '../mesh';
-import { useStore, type Sent } from '../state';
+import { chart, useStore, type Sent } from '../state';
 import {
   Button,
   C,
@@ -36,16 +36,45 @@ import {
   Section,
   st,
 } from './kit';
+import { PatientList, PatientScreen } from './Patients';
 import { CarriedCard, SyncCard, SyncedPill } from './shared';
 import { VisitCard } from './VisitCard';
 import { VisitForm } from './VisitForm';
 
+type Screen =
+  | { name: 'home' | 'scan' }
+  | { name: 'visit'; patientId?: string; back?: string }
+  | { name: 'patient'; id: string };
+
 export function Worker() {
   const s = useStore();
-  const [screen, setScreen] = useState<'home' | 'scan' | 'visit'>('home');
+  const [screen, setScreen] = useState<Screen>({ name: 'home' });
+  const home = () => setScreen({ name: 'home' });
 
-  if (screen === 'scan') return <Scanner onDone={() => setScreen('home')} />;
-  if (screen === 'visit') return <VisitForm onDone={() => setScreen('home')} />;
+  if (screen.name === 'scan') return <Scanner onDone={home} />;
+  if (screen.name === 'visit') {
+    const { back } = screen;
+    return (
+      <VisitForm
+        patientId={screen.patientId}
+        onDone={() =>
+          setScreen(back ? { name: 'patient', id: back } : { name: 'home' })
+        }
+      />
+    );
+  }
+  if (screen.name === 'patient') {
+    const id = screen.id;
+    return (
+      <PatientScreen
+        id={id}
+        onBack={home}
+        onRecord={() => setScreen({ name: 'visit', patientId: id, back: id })}
+      />
+    );
+  }
+  const patients = chart(s);
+  const visits = s.sent.filter(x => x.visit);
 
   const openScanner = async () => {
     if (Platform.OS === 'android') {
@@ -54,7 +83,7 @@ export function Worker() {
       );
       if (r !== 'granted') return;
     }
-    setScreen('scan');
+    setScreen({ name: 'scan' });
   };
 
   return (
@@ -68,7 +97,7 @@ export function Worker() {
             onPress={() =>
               Alert.alert(
                 'Reset this phone?',
-                'Clears the clinic enrollment and every visit on this phone.',
+                'Clears the clinic enrollment, the sign-in and every record on this phone.',
                 [
                   { text: 'Cancel', style: 'cancel' },
                   { text: 'Reset', style: 'destructive', onPress: resetDemo },
@@ -115,11 +144,13 @@ export function Worker() {
         <Button
           title="New visit"
           icon={Plus}
-          onPress={() => setScreen('visit')}
+          onPress={() => setScreen({ name: 'visit' })}
         />
 
-        <Section title="Today's visits" count={s.sent.length} />
-        {s.sent.length === 0 && (
+        <PatientList onOpen={id => setScreen({ name: 'patient', id })} />
+
+        <Section title="Visits from this phone" count={visits.length} />
+        {visits.length === 0 && (
           <Card style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
             <IconTile icon={ClipboardList} color={C.muted} bg={C.sunken} />
             <Text style={[st.small, { flex: 1 }]}>
@@ -128,10 +159,11 @@ export function Worker() {
             </Text>
           </Card>
         )}
-        {s.sent.map(x => (
+        {visits.map(x => (
           <VisitCard
-            key={x.visit.id}
-            visit={x.visit}
+            key={x.id}
+            visit={x.visit!}
+            patient={patients.find(p => p.resource.id === x.visit!.patientId)}
             footer={
               <View
                 style={[

@@ -1,26 +1,40 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSyncExternalStore } from 'react';
-import type { Visit } from './domain/visit';
+import type { Edit, Ref } from './domain/fhir';
+import {
+  householdOf,
+  versionOf,
+  type Panel,
+  type PanelPatient,
+} from './domain/panel';
+import type { Envelope, Visit } from './domain/visit';
+import type { SyncResult } from './services/medplum';
 
 export type Role = 'chw' | 'clinic';
 export type Peer = { address: string; name: string };
-export type Synced = 'pending' | 'added' | 'duplicate';
+export type Synced = 'pending' | 'added' | 'duplicate' | 'conflict';
 
-/** Health worker side: a visit this phone recorded. */
-export type Sent = {
-  visit: Visit;
-  lastSentAt: number;
-  delivered: boolean; // the clinic acknowledged it
+/** A signed record, and what its bundle does. Both roles keep these until Medplum answers. */
+export type Rec = {
+  id: string; // the envelope id
+  env: Envelope;
+  visit?: Visit;
+  edit?: Edit;
   synced: Synced;
+  reason?: string; // Medplum's word on a conflict
 };
 
-/** Clinic side: a visit that arrived over the mesh. */
-export type Received = {
-  visit: Visit;
+/** Health worker side: a record this phone signed. */
+export type Sent = Rec & {
+  lastSentAt: number;
+  delivered: boolean; // the clinic acknowledged it
+};
+
+/** Clinic side: a record that arrived over the mesh, its signature checked. */
+export type Received = Rec & {
   from: string;
   hops: number;
   receivedAt: number;
-  synced: Synced;
 };
 
 /** A frame this phone forwarded for two other phones. It never sees inside. */
@@ -41,6 +55,9 @@ export type State = {
   address: string;
   neighbors: string[];
   syncNote: string;
+  // Medplum: who this phone signs for, and what it knows offline
+  practitioner: Ref | null;
+  panel: Panel | null;
   // health worker
   clinic: Peer | null;
   enrolled: boolean;
@@ -56,6 +73,8 @@ export type State = {
 const PERSISTED = [
   'role',
   'name',
+  'practitioner',
+  'panel',
   'clinic',
   'enrolled',
   'sent',
@@ -72,6 +91,8 @@ export const INITIAL: State = {
   address: '',
   neighbors: [],
   syncNote: '',
+  practitioner: null,
+  panel: null,
   clinic: null,
   enrolled: false,
   sent: [],
@@ -86,49 +107,134 @@ export const INITIAL: State = {
 export const RESEND_MS = 30_000;
 const CARRIED_CAP = 50;
 
-/** Clinic: accept a visit only from an enrolled worker, once per visit id. */
-export function receiveVisit(
+/** Clinic: accept a record only from an enrolled worker, once per record. */
+export function receive(
   s: State,
   from: string,
-  visit: Visit,
+  rec: Rec,
   hops: number,
   now: number,
 ): State {
   if (!s.workers.some(w => w.address === from)) return s;
-  if (s.received.some(r => r.visit.id === visit.id)) return s;
-  const entry: Received = {
-    visit,
-    from,
-    hops,
-    receivedAt: now,
-    synced: 'pending',
-  };
-  return { ...s, received: [entry, ...s.received] };
-}
-
-/** Health worker: the clinic's receipt, honoured only from the enrolled clinic. */
-export function acknowledge(s: State, from: string, id: string): State {
-  if (from !== s.clinic?.address) return s;
+  if (s.received.some(r => r.id === rec.id)) return s;
   return {
     ...s,
-    sent: s.sent.map(x => (x.visit.id === id ? { ...x, delivered: true } : x)),
+    received: [{ ...rec, from, hops, receivedAt: now }, ...s.received],
   };
 }
 
-/** Visits the clinic has not acknowledged and that have waited long enough to resend. */
+/**
+ * Health worker: the clinic's receipt, honoured only from the enrolled clinic.
+ * A later receipt also says what Medplum made of it, for phones that never get signal.
+ */
+export function acknowledge(
+  s: State,
+  from: string,
+  id: string,
+  synced?: Synced | 'rejected',
+  reason?: string,
+): State {
+  if (from !== s.clinic?.address) return s;
+  if (synced === 'rejected') {
+    return { ...s, sent: s.sent.filter(x => x.id !== id) };
+  }
+  return {
+    ...s,
+    sent: s.sent.map(x =>
+      x.id !== id
+        ? x
+        : {
+            ...x,
+            delivered: true,
+            ...(synced && x.synced === 'pending' && { synced, reason }),
+          },
+    ),
+  };
+}
+
+/** Records the clinic has not acknowledged and that have waited long enough to resend. */
 export const dueForResend = (s: State, now: number) =>
   s.sent.filter(x => !x.delivered && now - x.lastSentAt >= RESEND_MS);
+
+const OUTCOME = {
+  applied: 'added',
+  duplicate: 'duplicate',
+  conflict: 'conflict',
+} as const;
+
+/** Medplum's answers. Only a rejected record is dropped; a conflict stays for a person to settle. */
+export function settle(s: State, results: SyncResult[]): State {
+  const byId = new Map(results.filter(r => r.id).map(r => [r.id!, r]));
+  const apply = <T extends Rec>(list: T[]): T[] =>
+    list
+      .filter(x => byId.get(x.id)?.status !== 'rejected')
+      .map(x => {
+        const r = byId.get(x.id);
+        return r && r.status !== 'rejected'
+          ? { ...x, synced: OUTCOME[r.status], reason: r.reason }
+          : x;
+      });
+  return { ...s, sent: apply(s.sent), received: apply(s.received) };
+}
+
+/** Keeps the newest panel, wherever it came from. */
+export const takePanel = (s: State, panel: Panel): State =>
+  s.panel && s.panel.at >= panel.at ? s : { ...s, panel };
 
 export function carry(s: State, c: Carried): State {
   if (s.carried.some(x => x.id === c.id)) return s;
   return { ...s, carried: [c, ...s.carried].slice(0, CARRIED_CAP) };
 }
 
+export type ChartVisit = Visit & { pending: boolean };
+export type ChartPatient = Omit<PanelPatient, 'visits'> & {
+  household: string;
+  visits: ChartVisit[];
+  edit?: Rec; // an edit Medplum has not settled: pending, or a conflict
+};
+
+/**
+ * The merged view: the last snapshot with this phone's own records laid over
+ * it, so a visit or edit shows the moment it is made, signal or not.
+ */
+export function chart(s: State): ChartPatient[] {
+  const recs: Rec[] = s.role === 'clinic' ? s.received : s.sent;
+  return (s.panel?.patients ?? []).map(p => {
+    const id = p.resource.id;
+    const known = new Set(p.visits.map(v => v.id));
+    const extra = recs
+      .filter(
+        r => r.visit && r.visit.patientId === id && !known.has(r.visit.id),
+      )
+      .map(r => ({ ...r.visit!, pending: r.synced === 'pending' }));
+    // An edit made on the version the panel holds is the newest word, until the panel moves on.
+    const live = recs.find(
+      r =>
+        !!r.edit &&
+        r.edit.patientId === id &&
+        r.edit.base === versionOf(p.resource) &&
+        r.synced !== 'conflict',
+    );
+    return {
+      ...p,
+      household: live ? live.edit!.household : householdOf(p.resource),
+      visits: [...extra, ...p.visits.map(v => ({ ...v, pending: false }))].sort(
+        (a, b) => b.at - a.at,
+      ),
+      edit: recs.find(
+        r =>
+          r.edit?.patientId === id &&
+          (r.synced === 'pending' || r.synced === 'conflict'),
+      ),
+    };
+  });
+}
+
 // --- the store ---
 
 let state = INITIAL;
 const listeners = new Set<() => void>();
-const KEY = 'wecare/state/v1';
+const KEY = 'wecare/state/v2';
 
 export const getState = () => state;
 
